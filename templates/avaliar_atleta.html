@@ -1,0 +1,535 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .rating-stars {
+        display: flex;
+        gap: 8px;
+        margin: 10px 0;
+    }
+    .star {
+        font-size: 32px;
+        cursor: pointer;
+        color: #4B5563;
+        transition: all 0.2s;
+    }
+    .star:hover, .star.active {
+        color: #FFD700;
+        text-shadow: 0 0 10px rgba(255,215,0,0.5);
+    }
+    .rating-value {
+        font-size: 14px;
+        font-weight: bold;
+        color: #0b3ea8;
+        margin-left: 10px;
+    }
+    .overall-box {
+        background: #f1f6ff;
+        border: 1px solid #c8d8ff;
+        border-radius: 16px;
+        padding: 20px;
+        text-align: center;
+        margin-top: 20px;
+    }
+    .overall-value {
+        font-size: 42px;
+        font-weight: 900;
+        color: #0b3ea8;
+    }
+    .avaliacao-card {
+        background: #ffffff;
+        border: 1px solid #cfd5df;
+        border-radius: 20px;
+        margin-bottom: 24px;
+        overflow: hidden;
+    }
+    .card-header-avaliacao {
+        padding: 20px 24px;
+        border-bottom: 1px solid #d9dee8;
+        background: #f8fbff;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    .card-header-avaliacao h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: #101722;
+    }
+    .card-body-avaliacao {
+        padding: 24px;
+    }
+    .rating-item {
+        background: #f8faff;
+        border: 1px solid #e3e9f4;
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+    .rating-label {
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .notas-textarea {
+        width: 100%;
+        background: #ffffff;
+        border: 1px solid #c8cfdb;
+        border-radius: 12px;
+        padding: 12px;
+        color: #111827;
+    }
+    .info-atleta {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 24px;
+        padding: 20px;
+        background: linear-gradient(90deg, #0b3ea8, #0f1f4f);
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.18);
+    }
+    .info-atleta-foto {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #0033A0, #001a4d);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        color: #FFD700;
+    }
+    .info-atleta-foto img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    .info-atleta h3 {
+        color: #ffffff !important;
+        font-weight: 800;
+    }
+    .info-atleta p {
+        color: rgba(255,255,255,0.9) !important;
+        font-weight: 500;
+    }
+    .form-label {
+        color: #1f2937;
+        font-weight: 700;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-white">
+            <i class="fas fa-clipboard-list me-2" style="color: #FFD700;"></i>
+            Avaliar Atleta
+        </h2>
+        <a href="{{ url_for('analise_desempenho') }}" class="btn btn-outline-premium">
+            <i class="fas fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <!-- Info Atleta -->
+    <div class="info-atleta">
+        <div class="info-atleta-foto">
+            {% if atleta.foto %}
+            <img src="{{ url_for('serve_foto_atleta', filename=atleta.foto) }}">
+            {% else %}
+            <i class="fas fa-user"></i>
+            {% endif %}
+        </div>
+        <div>
+            <h3 class="text-white mb-1">{{ atleta.nome }}</h3>
+            <p class="text-muted mb-0">{{ atleta.posicao or 'Sem posição' }} | Nº {{ atleta.numero or '-' }} | {{ atleta.categoria or 'Sem categoria' }}</p>
+        </div>
+    </div>
+
+    <form method="POST">
+        <input type="hidden" name="temporada" value="2024/2025">
+
+        <!-- AVALIAÇÃO TÉCNICA -->
+        <div class="avaliacao-card">
+            <div class="card-header-avaliacao">
+                <i class="fas fa-futbol fa-2x" style="color: #3B82F6;"></i>
+                <h3>Avaliação Técnica</h3>
+            </div>
+            <div class="card-body-avaliacao">
+                <div class="rating-item">
+                    <div class="rating-label">Primeiro toque / controle</div>
+                    <div class="rating-stars" data-field="first_touch">
+                        <span class="star" data-value="1">★</span>
+                        <span class="star" data-value="2">★</span>
+                        <span class="star" data-value="3">★</span>
+                        <span class="star" data-value="4">★</span>
+                        <span class="star" data-value="5">★</span>
+                    </div>
+                    <input type="hidden" name="first_touch" value="3">
+                </div>
+                <div class="rating-item">
+                    <div class="rating-label">Passe (curto/longo)</div>
+                    <div class="rating-stars" data-field="passing">
+                        <span class="star" data-value="1">★</span>
+                        <span class="star" data-value="2">★</span>
+                        <span class="star" data-value="3">★</span>
+                        <span class="star" data-value="4">★</span>
+                        <span class="star" data-value="5">★</span>
+                    </div>
+                    <input type="hidden" name="passing" value="3">
+                </div>
+                <div class="rating-item">
+                    <div class="rating-label">Drible / 1x1</div>
+                    <div class="rating-stars" data-field="dribbling">
+                        <span class="star" data-value="1">★</span>
+                        <span class="star" data-value="2">★</span>
+                        <span class="star" data-value="3">★</span>
+                        <span class="star" data-value="4">★</span>
+                        <span class="star" data-value="5">★</span>
+                    </div>
+                    <input type="hidden" name="dribbling" value="3">
+                </div>
+                <div class="rating-item">
+                    <div class="rating-label">Finalização</div>
+                    <div class="rating-stars" data-field="shooting">
+                        <span class="star" data-value="1">★</span>
+                        <span class="star" data-value="2">★</span>
+                        <span class="star" data-value="3">★</span>
+                        <span class="star" data-value="4">★</span>
+                        <span class="star" data-value="5">★</span>
+                    </div>
+                    <input type="hidden" name="shooting" value="3">
+                </div>
+                <div class="rating-item">
+                    <div class="rating-label">Cruzamento / bola final</div>
+                    <div class="rating-stars" data-field="crossing">
+                        <span class="star" data-value="1">★</span>
+                        <span class="star" data-value="2">★</span>
+                        <span class="star" data-value="3">★</span>
+                        <span class="star" data-value="4">★</span>
+                        <span class="star" data-value="5">★</span>
+                    </div>
+                    <input type="hidden" name="crossing" value="3">
+                </div>
+                <div class="overall-box">
+                    <div class="rating-label">NOTA GERAL TÉCNICA</div>
+                    <div class="overall-value" id="tec_overall_display">3.0</div>
+                    <input type="hidden" name="tec_overall" id="tec_overall" value="3">
+                </div>
+                <div style="margin-top: 20px;">
+                    <label class="form-label">Observações Técnicas</label>
+                    <textarea name="notas_tec" class="notas-textarea" rows="2" placeholder="Pontos fortes e a melhorar tecnicamente..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- AVALIAÇÃO TÁTICA -->
+        <div class="avaliacao-card">
+            <div class="card-header-avaliacao">
+                <i class="fas fa-chess-board fa-2x" style="color: #8B5CF6;"></i>
+                <h3>Avaliação Tática</h3>
+            </div>
+            <div class="card-body-avaliacao">
+                <div class="rating-item">
+                    <div class="rating-label">Posicionamento (of/def)</div>
+                    <div class="rating-stars" data-field="positioning">
+                        <span class="star" data-value="1">★</span>
+                        <span class="star" data-value="2">★</span>
+                        <span class="star" data-value="3">★</span>
+                        <span class="star" data-value="4">★</span>
+                        <span class="star" data-value="5">★</span>
+                    </div>
+                    <input type="hidden" name="positioning" value="3">
+                </div>
+                <div class="rating-item">
+                    <div class="rating-label">Tomada de decisão</div>
+                    <div class="rating-stars" data-field="decision_making">
+                        <span class="star" data-value="1">★</span>
+                        <span class="star" data-value="2">★</span>
+                        <span class="star" data-value="3">★</span>
+                        <span class="star" data-value="4">★</span>
+                        <span class="star" data-value="5">★</span>
+                    </div>
+                    <input type="hidden" name="decision_making" value="3">
+                </div>
+                <div class="rating-item">
+                    <div class="rating-label">Movimento sem bola</div>
+                    <div class="rating-stars" data-field="off_ball_movement">
+                        <span class="star" data-value="1">★</span>
+                        <span class="star" data-value="2">★</span>
+                        <span class="star" data-value="3">★</span>
+                        <span class="star" data-value="4">★</span>
+                        <span class="star" data-value="5">★</span>
+                    </div>
+                    <input type="hidden" name="off_ball_movement" value="3">
+                </div>
+                <div class="rating-item">
+                    <div class="rating-label">Pressão / trabalho defensivo</div>
+                    <div class="rating-stars" data-field="pressing">
+                        <span class="star" data-value="1">★</span>
+                        <span class="star" data-value="2">★</span>
+                        <span class="star" data-value="3">★</span>
+                        <span class="star" data-value="4">★</span>
+                        <span class="star" data-value="5">★</span>
+                    </div>
+                    <input type="hidden" name="pressing" value="3">
+                </div>
+                <div class="rating-item">
+                    <div class="rating-label">Entendimento da estrutura</div>
+                    <div class="rating-stars" data-field="team_structure">
+                        <span class="star" data-value="1">★</span>
+                        <span class="star" data-value="2">★</span>
+                        <span class="star" data-value="3">★</span>
+                        <span class="star" data-value="4">★</span>
+                        <span class="star" data-value="5">★</span>
+                    </div>
+                    <input type="hidden" name="team_structure" value="3">
+                </div>
+                <div class="overall-box">
+                    <div class="rating-label">NOTA GERAL TÁTICA</div>
+                    <div class="overall-value" id="tat_overall_display">3.0</div>
+                    <input type="hidden" name="tat_overall" id="tat_overall" value="3">
+                </div>
+                <div style="margin-top: 20px;">
+                    <label class="form-label">Observações Táticas</label>
+                    <textarea name="notas_tat" class="notas-textarea" rows="2" placeholder="Leitura de jogo, inteligência tática..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- AVALIAÇÃO FÍSICA -->
+        <div class="avaliacao-card">
+            <div class="card-header-avaliacao">
+                <i class="fas fa-dumbbell fa-2x" style="color: #10B981;"></i>
+                <h3>Avaliação Física</h3>
+            </div>
+            <div class="card-body-avaliacao">
+                <div class="rating-item">
+                    <div class="rating-label">Aceleração / Velocidade</div>
+                    <div class="rating-stars" data-field="acceleration">
+                        <span class="star" data-value="1">★</span>
+                        <span class="star" data-value="2">★</span>
+                        <span class="star" data-value="3">★</span>
+                        <span class="star" data-value="4">★</span>
+                        <span class="star" data-value="5">★</span>
+                    </div>
+                    <input type="hidden" name="acceleration" value="3">
+                </div>
+                <div class="rating-item">
+                    <div class="rating-label">Força / Duelos</div>
+                    <div class="rating-stars" data-field="strength">
+                        <span class="star" data-value="1">★</span>
+                        <span class="star" data-value="2">★</span>
+                        <span class="star" data-value="3">★</span>
+                        <span class="star" data-value="4">★</span>
+                        <span class="star" data-value="5">★</span>
+                    </div>
+                    <input type="hidden" name="strength" value="3">
+                </div>
+                <div class="rating-item">
+                    <div class="rating-label">Agilidade / Equilíbrio</div>
+                    <div class="rating-stars" data-field="agility">
+                        <span class="star" data-value="1">★</span>
+                        <span class="star" data-value="2">★</span>
+                        <span class="star" data-value="3">★</span>
+                        <span class="star" data-value="4">★</span>
+                        <span class="star" data-value="5">★</span>
+                    </div>
+                    <input type="hidden" name="agility" value="3">
+                </div>
+                <div class="rating-item">
+                    <div class="rating-label">Resistência / Ritmo</div>
+                    <div class="rating-stars" data-field="stamina">
+                        <span class="star" data-value="1">★</span>
+                        <span class="star" data-value="2">★</span>
+                        <span class="star" data-value="3">★</span>
+                        <span class="star" data-value="4">★</span>
+                        <span class="star" data-value="5">★</span>
+                    </div>
+                    <input type="hidden" name="stamina" value="3">
+                </div>
+                <div class="overall-box">
+                    <div class="rating-label">NOTA GERAL FÍSICA</div>
+                    <div class="overall-value" id="fis_overall_display">3.0</div>
+                    <input type="hidden" name="fis_overall" id="fis_overall" value="3">
+                </div>
+                <div style="margin-top: 20px;">
+                    <label class="form-label">Observações Físicas</label>
+                    <textarea name="notas_fis" class="notas-textarea" rows="2" placeholder="Condição física, resistência..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- AVALIAÇÃO MENTAL -->
+        <div class="avaliacao-card">
+            <div class="card-header-avaliacao">
+                <i class="fas fa-brain fa-2x" style="color: #F59E0B;"></i>
+                <h3>Avaliação Mental & Caráter</h3>
+            </div>
+            <div class="card-body-avaliacao">
+                <div class="rating-item">
+                    <div class="rating-label">Concentração</div>
+                    <div class="rating-stars" data-field="concentration">
+                        <span class="star" data-value="1">★</span>
+                        <span class="star" data-value="2">★</span>
+                        <span class="star" data-value="3">★</span>
+                        <span class="star" data-value="4">★</span>
+                        <span class="star" data-value="5">★</span>
+                    </div>
+                    <input type="hidden" name="concentration" value="3">
+                </div>
+                <div class="rating-item">
+                    <div class="rating-label">Competitividade</div>
+                    <div class="rating-stars" data-field="competitiveness">
+                        <span class="star" data-value="1">★</span>
+                        <span class="star" data-value="2">★</span>
+                        <span class="star" data-value="3">★</span>
+                        <span class="star" data-value="4">★</span>
+                        <span class="star" data-value="5">★</span>
+                    </div>
+                    <input type="hidden" name="competitiveness" value="3">
+                </div>
+                <div class="rating-item">
+                    <div class="rating-label">Confiança</div>
+                    <div class="rating-stars" data-field="confidence">
+                        <span class="star" data-value="1">★</span>
+                        <span class="star" data-value="2">★</span>
+                        <span class="star" data-value="3">★</span>
+                        <span class="star" data-value="4">★</span>
+                        <span class="star" data-value="5">★</span>
+                    </div>
+                    <input type="hidden" name="confidence" value="3">
+                </div>
+                <div class="rating-item">
+                    <div class="rating-label">Aprendizado / Sugestões</div>
+                    <div class="rating-stars" data-field="coachability">
+                        <span class="star" data-value="1">★</span>
+                        <span class="star" data-value="2">★</span>
+                        <span class="star" data-value="3">★</span>
+                        <span class="star" data-value="4">★</span>
+                        <span class="star" data-value="5">★</span>
+                    </div>
+                    <input type="hidden" name="coachability" value="3">
+                </div>
+                <div class="rating-item">
+                    <div class="rating-label">Liderança / Comunicação</div>
+                    <div class="rating-stars" data-field="leadership">
+                        <span class="star" data-value="1">★</span>
+                        <span class="star" data-value="2">★</span>
+                        <span class="star" data-value="3">★</span>
+                        <span class="star" data-value="4">★</span>
+                        <span class="star" data-value="5">★</span>
+                    </div>
+                    <input type="hidden" name="leadership" value="3">
+                </div>
+                <div class="overall-box">
+                    <div class="rating-label">NOTA GERAL MENTAL</div>
+                    <div class="overall-value" id="men_overall_display">3.0</div>
+                    <input type="hidden" name="men_overall" id="men_overall" value="3">
+                </div>
+                <div style="margin-top: 20px;">
+                    <label class="form-label">Observações Mentais</label>
+                    <textarea name="notas_men" class="notas-textarea" rows="2" placeholder="Comportamento, atitude, liderança..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-4 mb-5">
+            <button type="submit" class="btn btn-primary btn-lg px-5">
+                <i class="fas fa-save"></i> Salvar Avaliação
+            </button>
+            <a href="{{ url_for('analise_desempenho') }}" class="btn btn-secondary btn-lg px-5 ms-3">
+                <i class="fas fa-times"></i> Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Sistema de estrelas para cada grupo
+    document.querySelectorAll('.rating-stars').forEach(starGroup => {
+        const stars = starGroup.querySelectorAll('.star');
+        const hiddenInput = starGroup.parentElement.querySelector('input[type="hidden"]');
+        
+        // Marcar estrelas baseado no valor atual
+        const currentValue = parseInt(hiddenInput.value) || 3;
+        stars.forEach(star => {
+            const value = parseInt(star.dataset.value);
+            if (value <= currentValue) {
+                star.classList.add('active');
+            }
+        });
+        
+        stars.forEach(star => {
+            star.addEventListener('click', function() {
+                const value = parseInt(this.dataset.value);
+                hiddenInput.value = value;
+                
+                stars.forEach(s => {
+                    const starValue = parseInt(s.dataset.value);
+                    if (starValue <= value) {
+                        s.classList.add('active');
+                    } else {
+                        s.classList.remove('active');
+                    }
+                });
+                
+                recalcularMedia();
+            });
+        });
+    });
+    
+    function recalcularMedia() {
+        // Média Técnica
+        const tecValues = [
+            parseInt(document.querySelector('input[name="first_touch"]').value),
+            parseInt(document.querySelector('input[name="passing"]').value),
+            parseInt(document.querySelector('input[name="dribbling"]').value),
+            parseInt(document.querySelector('input[name="shooting"]').value),
+            parseInt(document.querySelector('input[name="crossing"]').value)
+        ];
+        const tecMedia = tecValues.reduce((a,b) => a + b, 0) / tecValues.length;
+        document.getElementById('tec_overall_display').innerText = tecMedia.toFixed(1);
+        document.getElementById('tec_overall').value = tecMedia.toFixed(1);
+        
+        // Média Tática
+        const tatValues = [
+            parseInt(document.querySelector('input[name="positioning"]').value),
+            parseInt(document.querySelector('input[name="decision_making"]').value),
+            parseInt(document.querySelector('input[name="off_ball_movement"]').value),
+            parseInt(document.querySelector('input[name="pressing"]').value),
+            parseInt(document.querySelector('input[name="team_structure"]').value)
+        ];
+        const tatMedia = tatValues.reduce((a,b) => a + b, 0) / tatValues.length;
+        document.getElementById('tat_overall_display').innerText = tatMedia.toFixed(1);
+        document.getElementById('tat_overall').value = tatMedia.toFixed(1);
+        
+        // Média Física
+        const fisValues = [
+            parseInt(document.querySelector('input[name="acceleration"]').value),
+            parseInt(document.querySelector('input[name="strength"]').value),
+            parseInt(document.querySelector('input[name="agility"]').value),
+            parseInt(document.querySelector('input[name="stamina"]').value)
+        ];
+        const fisMedia = fisValues.reduce((a,b) => a + b, 0) / fisValues.length;
+        document.getElementById('fis_overall_display').innerText = fisMedia.toFixed(1);
+        document.getElementById('fis_overall').value = fisMedia.toFixed(1);
+        
+        // Média Mental
+        const menValues = [
+            parseInt(document.querySelector('input[name="concentration"]').value),
+            parseInt(document.querySelector('input[name="competitiveness"]').value),
+            parseInt(document.querySelector('input[name="confidence"]').value),
+            parseInt(document.querySelector('input[name="coachability"]').value),
+            parseInt(document.querySelector('input[name="leadership"]').value)
+        ];
+        const menMedia = menValues.reduce((a,b) => a + b, 0) / menValues.length;
+        document.getElementById('men_overall_display').innerText = menMedia.toFixed(1);
+        document.getElementById('men_overall').value = menMedia.toFixed(1);
+    }
+</script>
+{% endblock %}

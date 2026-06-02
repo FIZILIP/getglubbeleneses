@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+.Python
+.venv/
+venv/
+env/
+
+# Local build environments
+.venv-build-macos/
+
+# App local data
+getclub.db
+app_settings.json
+uploads/
+static/uploads/
+*.sqlite
+*.sqlite3
+
+# Generated installers and packaged apps
+dist/
+build/
+installer_output/
+*.spec
+*.dmg
+*.pkg
+*.exe
+
+# Local backups and generated artifacts
+*.bak
+*.save
+*.rtfd/
+
+# OS/editor noise
+.DS_Store
+.idea/
+.vscode/
+
+# Private license tooling
+key_generator.py

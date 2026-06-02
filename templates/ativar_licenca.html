@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ club_display_name }} | Ativação de Licença</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0A0C0F;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: linear-gradient(135deg, #111827, #0F1117);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 24px;
+            padding: 48px;
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.5);
+        }
+        .logo {
+            width: 100px;
+            height: auto;
+            margin-bottom: 24px;
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #a78bfa, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #6B7280;
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+        .alert {
+            padding: 14px 18px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .alert-warning {
+            background: rgba(234,179,8,0.1);
+            border: 1px solid rgba(234,179,8,0.3);
+            color: #fbbf24;
+        }
+        .alert-danger {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            color: #f87171;
+        }
+        .alert-success {
+            background: rgba(16,185,129,0.1);
+            border: 1px solid rgba(16,185,129,0.3);
+            color: #34d399;
+        }
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #9CA3AF;
+            margin-bottom: 8px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 15px;
+            font-family: 'Inter', monospace;
+            letter-spacing: 1px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input[type="text"]:focus {
+            border-color: #7c3aed;
+        }
+        input[type="text"]::placeholder { color: #4B5563; }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #7c3aed, #5b21b6);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 1px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(124,58,237,0.4);
+        }
+        .divider {
+            border: none;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            margin: 28px 0;
+        }
+        .back-link {
+            color: #6B7280;
+            font-size: 13px;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .back-link:hover { color: #9CA3AF; }
+        .key-format {
+            font-size: 12px;
+            color: #4B5563;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="{{ url_for('static', filename='img/getclub-logo.png') }}" class="logo" alt="{{ club_display_name }}">
+        <h1>{{ club_display_name }}</h1>
+        <p class="subtitle">Sistema de Gestão Desportiva</p>
+
+        {% if mensagem %}
+        <div class="alert alert-warning">
+            <i class="fas fa-clock"></i> {{ mensagem }}
+        </div>
+        {% endif %}
+
+        {% if erro %}
+        <div class="alert alert-danger">
+            <i class="fas fa-times-circle"></i> {{ erro }}
+        </div>
+        {% endif %}
+
+        {% if sucesso %}
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle"></i> {{ sucesso }}
+            <br><br>
+            <a href="{{ url_for('login') }}" style="color: #34d399; font-weight: 700;">Entrar na aplicação →</a>
+        </div>
+        {% else %}
+        <form method="POST">
+            <div class="form-group">
+                <label><i class="fas fa-key"></i> &nbsp;Chave de Ativação</label>
+                <input type="text" name="key" placeholder="GETCLUB2-A-YYYYMMDD-XXXXXXXX-XXXXXXXXXX" autocomplete="off" required>
+                <p class="key-format">Formato: GETCLUB2-A-YYYYMMDD-XXXXXXXX-XXXXXXXXXX (anual) ou GETCLUB2-V-PERP-XXXXXXXX-XXXXXXXXXX (vitalícia)</p>
+            </div>
+            <button type="submit" class="btn">
+                <i class="fas fa-unlock"></i> &nbsp;ATIVAR LICENÇA
+            </button>
+        </form>
+
+        <hr class="divider">
+        <a href="{{ url_for('login') }}" class="back-link">
+            <i class="fas fa-arrow-left"></i> Voltar ao login
+        </a>
+        {% endif %}
+    </div>
+</body>
+</html>

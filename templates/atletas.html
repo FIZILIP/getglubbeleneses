@@ -1,0 +1,689 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* Grid de cards flutuantes */
+    .atletas-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 20px;
+        margin-top: 8px;
+    }
+    
+    .atleta-card {
+        background: linear-gradient(145deg, #111827, #0F1117);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 20px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        position: relative;
+        min-height: 420px;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .atleta-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0,70,190,0.25);
+        border-color: rgba(255,215,0,0.3);
+    }
+    
+    .card-header-img {
+        height: 140px;
+        background: linear-gradient(135deg, #0033A0 0%, #001a4d 100%);
+        position: relative;
+        display: flex;
+        align-items: flex-end;
+        padding: 20px;
+    }
+    
+    .card-header-img .numero-camisa {
+        position: absolute;
+        top: 15px;
+        right: 20px;
+        font-size: 72px;
+        font-weight: 900;
+        color: rgba(232, 241, 241, 0.70);
+        line-height: 1;
+    }
+    
+    .foto-atleta {
+        width: 108px;
+        height: 108px;
+        border-radius: 50%;
+        border: 4px solid #FFD700;
+        object-fit: cover;
+        background: #1a1a2e;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        z-index: 2;
+    }
+    
+    .foto-placeholder {
+        width: 108px;
+        height: 108px;
+        border-radius: 50%;
+        border: 4px solid #FFD700;
+        background: rgba(255,255,255,0.05);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40px;
+        color: #FFD700;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        z-index: 2;
+    }
+    
+    .card-body-info {
+        padding: 20px;
+        position: relative;
+        flex: 1;
+    }
+    
+    .nome-atleta {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 4px;
+        color: #FFFFFF;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
+        max-width: 100%;
+        word-break: break-word;
+    }
+    
+    .posicao-badge {
+        display: inline-block;
+        background: rgba(255,215,0,0.15);
+        color: #FFD700;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .info-linha {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #ffffff;
+        font-size: 13px;
+        margin-bottom: 6px;
+    }
+    
+    .info-linha i {
+        width: 18px;
+        color: #0033A0;
+        font-size: 13px;
+    }
+    
+    .categoria-tag {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: rgba(0,51,160,0.3);
+        color: #60A5FA;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    
+    .card-actions {
+        display: flex;
+        gap: 8px;
+        padding: 0 20px 20px;
+        margin-top: auto;
+    }
+    
+    .btn-card {
+        flex: 1;
+        padding: 8px;
+        border-radius: 12px;
+        border: none;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        text-decoration: none;
+    }
+    
+    .btn-editar {
+        background: rgba(255,215,0,0.1);
+        color: #FFD700;
+        border: 1px solid rgba(255,215,0,0.2);
+    }
+    .btn-editar:hover { background: rgba(255,215,0,0.2); color: #FFD700; }
+    
+    .btn-remover {
+        background: rgba(239,68,68,0.1);
+        color: #EF4444;
+        border: 1px solid rgba(239,68,68,0.2);
+    }
+    .btn-remover:hover { background: rgba(239,68,68,0.2); color: #EF4444; }
+    
+    .btn-add-flutuante {
+        background: linear-gradient(135deg, #0033A0, #FFD700);
+        border: none;
+        padding: 12px 28px;
+        border-radius: 14px;
+        font-weight: 700;
+        color: white;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+    }
+    .btn-add-flutuante:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0,51,160,0.4);
+        color: white;
+    }
+
+    /* ── TABS DE CATEGORIA ── */
+    .categorias-nav {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+        border-bottom: 2px solid rgba(255,255,255,0.07);
+        padding-bottom: 0;
+    }
+
+    .cat-tab {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 22px;
+        border-radius: 14px 14px 0 0;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-bottom: none;
+        background: rgba(255,255,255,0.03);
+        color: #9CA3AF;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        position: relative;
+        bottom: -2px;
+        user-select: none;
+    }
+
+    .cat-tab:hover {
+        background: rgba(255,255,255,0.07);
+        color: #fff;
+    }
+
+    .cat-tab.active {
+        background: linear-gradient(135deg, #0033A0, #061d5d);
+        color: #FFD700;
+        border-color: rgba(255,215,0,0.25);
+        border-bottom: 2px solid #0a0f19;
+    }
+
+    .cat-tab .cat-count {
+        background: rgba(255,255,255,0.12);
+        color: inherit;
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+    .cat-tab.active .cat-count {
+        background: rgba(255,215,0,0.2);
+        color: #FFD700;
+    }
+
+    /* Secção de categoria */
+    .categoria-section { display: none; }
+    .categoria-section.active { display: block; }
+
+    .categoria-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+        padding: 14px 20px;
+        background: linear-gradient(135deg, rgba(0,51,160,0.25), rgba(6,29,93,0.25));
+        border: 1px solid rgba(255,215,0,0.12);
+        border-radius: 14px;
+    }
+
+    .categoria-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: #fff;
+    }
+
+    .categoria-header span {
+        color: #9CA3AF;
+        font-size: 13px;
+    }
+
+    /* Cards dark */
+    .atleta-card{
+        background:#0a0f19!important;
+        border:1px solid rgba(74,85,104,.34)!important;
+        box-shadow:0 24px 48px rgba(0,0,0,.55)!important;
+    }
+    .atleta-card:hover{
+        box-shadow:0 28px 56px rgba(0,0,0,.62)!important;
+        border-color:rgba(255,215,0,.28)!important;
+    }
+    .card-header-img{
+        background:linear-gradient(135deg,#003bab 0%,#061d5d 100%)!important;
+        overflow:hidden;
+        display:block!important;
+        padding:0!important;
+    }
+    .card-header-img::before{
+        content:"";
+        position:absolute;
+        inset:0;
+        background:radial-gradient(circle at 18% 12%,rgba(0,74,214,.82),transparent 34%),
+                   linear-gradient(90deg,rgba(0,55,169,.96),rgba(2,28,89,.98));
+        z-index:1;
+    }
+    .card-header-img .numero-camisa,
+    .foto-atleta,
+    .foto-placeholder{ position:relative; z-index:2; }
+    .card-header-img .numero-camisa{
+        position:absolute!important; top:15px!important; right:20px!important;
+        font-size:72px!important; line-height:1!important; color:rgba(226,232,240,.78)!important;
+    }
+    .foto-atleta, .foto-placeholder{
+        position:absolute!important; top:14px!important; left:16px!important;
+        width:96px!important; height:96px!important; border-width:4px!important;
+    }
+    .card-body-info{ background:#0a0f19!important; border-top:1px solid rgba(255,255,255,.05); }
+    .nome-atleta{ color:#f8fafc!important; letter-spacing:-.2px; }
+    .posicao-badge{ background:rgba(255,215,0,.20)!important; color:#ffdd16!important; border:1px solid rgba(255,215,0,.10); }
+    .categoria-tag{ background:rgba(0,51,160,.58)!important; color:#60a5fa!important; border:1px solid rgba(96,165,250,.08); }
+    .info-linha{ color:#a5adbb!important; }
+    .info-linha i{ color:#0046bf!important; }
+    .card-actions{ background:#0a0f19!important; border-top:0!important; }
+    .btn-card{ background:rgba(255,255,255,.04)!important; border:1px solid rgba(148,163,184,.14)!important; color:#f8fafc!important; }
+    .btn-card:hover{ background:rgba(255,255,255,.08)!important; color:#fff!important; border-color:rgba(255,215,0,.45)!important; }
+    .btn-editar{ background:rgba(255,215,0,.12)!important; color:#ffdd16!important; border-color:rgba(255,215,0,.32)!important; }
+    .btn-cartoes{ background:rgba(245,158,11,.15)!important; color:#f59e0b!important; border-color:rgba(245,158,11,.36)!important; }
+    .btn-remover{ background:rgba(239,68,68,.15)!important; color:#ff4b4b!important; border-color:rgba(239,68,68,.34)!important; }
+    .lesao-badge{ background:rgba(239,68,68,.22)!important; color:#ff4b4b!important; border:1px solid rgba(239,68,68,.08); }
+    .header-category{
+        position:absolute; top:88px; right:20px;
+        color:#fff; font-size:11px; font-weight:800; letter-spacing:.2px; z-index:3;
+    }
+    .btn-add-flutuante{ background:linear-gradient(90deg,#0b3ea8,#2e6dff)!important; }
+    .modal-premium .modal-content{ background:#fff!important; border:1px solid #cfd5df!important; }
+    .modal-premium .modal-header{ background:#f1f6ff!important; border-bottom:1px solid #d6dce8!important; }
+    .modal-premium .form-control,.modal-premium .form-select{ background:#fff!important; color:#111827!important; border:1px solid #c8cfdb!important; }
+
+    /* Vazio por categoria */
+    .empty-categoria {
+        text-align: center;
+        padding: 48px 20px;
+        color: #4B5563;
+    }
+    .empty-categoria i { font-size: 48px; margin-bottom: 12px; display: block; }
+
+    @media(max-width:900px){
+        .atletas-grid{ grid-template-columns:1fr; }
+        .atleta-card{ min-height:420px; }
+        .categorias-nav{ gap: 4px; }
+        .cat-tab{ padding: 8px 12px; font-size: 12px; }
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="text-white fw-bold mb-1">
+            <i class="fas fa-users me-2" style="color: #FFD700;"></i>Plantel
+        </h2>
+        <p class="text-muted mb-0" style="font-size: 14px;">{{ atletas|length }} atleta(s) no elenco</p>
+    </div>
+    <button class="btn-add-flutuante" data-bs-toggle="modal" data-bs-target="#modalAtleta">
+        <i class="fas fa-plus"></i> Novo Atleta
+    </button>
+</div>
+
+{% if atletas %}
+
+{# ── Construir dicionário de categorias ── #}
+{% set categorias_ordem = ['Profissional', 'Sub-23', 'Sub-20', 'Sub-17', 'Sub-15'] %}
+{% set sem_categoria = [] %}
+{% set cats_presentes = [] %}
+
+{# Recolher categorias que têm atletas, mantendo a ordem #}
+{% for cat in categorias_ordem %}
+    {% set atletas_cat = atletas | selectattr('categoria', 'equalto', cat) | list %}
+    {% if atletas_cat | length > 0 %}
+        {% if cat not in cats_presentes %}
+            {% set _ = cats_presentes.append(cat) %}
+        {% endif %}
+    {% endif %}
+{% endfor %}
+
+{# Categorias fora da lista padrão #}
+{% for atleta in atletas %}
+    {% if atleta.categoria and atleta.categoria not in categorias_ordem and atleta.categoria not in cats_presentes %}
+        {% set _ = cats_presentes.append(atleta.categoria) %}
+    {% endif %}
+    {% if not atleta.categoria %}
+        {% set _ = sem_categoria.append(atleta) %}
+    {% endif %}
+{% endfor %}
+
+{% if sem_categoria | length > 0 %}
+    {% set _ = cats_presentes.append('Sem Categoria') %}
+{% endif %}
+
+{# ── TABS ── #}
+<div class="categorias-nav" id="categoriasNav">
+    <!-- Tab Todos -->
+    <div class="cat-tab active" data-cat="todos" onclick="mudarTab('todos')">
+        <i class="fas fa-layer-group"></i>
+        Todos
+        <span class="cat-count">{{ atletas|length }}</span>
+    </div>
+
+    {% for cat in cats_presentes %}
+        {% if cat == 'Sem Categoria' %}
+            {% set count = sem_categoria | length %}
+        {% else %}
+            {% set count = atletas | selectattr('categoria', 'equalto', cat) | list | length %}
+        {% endif %}
+        {% set cat_id = cat | lower | replace(' ', '-') | replace('/', '-') %}
+        <div class="cat-tab" data-cat="{{ cat_id }}" onclick="mudarTab('{{ cat_id }}')">
+            {% if cat == 'Profissional' %}<i class="fas fa-star"></i>
+            {% elif 'Sub' in cat %}<i class="fas fa-child"></i>
+            {% else %}<i class="fas fa-users"></i>{% endif %}
+            {{ cat }}
+            <span class="cat-count">{{ count }}</span>
+        </div>
+    {% endfor %}
+</div>
+
+{# ── SECÇÃO TODOS — preenchida pelo JS via clone das outras secções ── #}
+<div class="categoria-section active" id="section-todos">
+    <div class="atletas-grid"></div>
+</div>
+
+{# ── SECÇÕES POR CATEGORIA ── #}
+{% for cat in cats_presentes %}
+    {% if cat == 'Sem Categoria' %}
+        {% set atletas_desta_cat = sem_categoria %}
+    {% else %}
+        {% set atletas_desta_cat = atletas | selectattr('categoria', 'equalto', cat) | list %}
+    {% endif %}
+    {% set cat_id = cat | lower | replace(' ', '-') | replace('/', '-') %}
+
+    <div class="categoria-section" id="section-{{ cat_id }}">
+        <div class="categoria-header">
+            {% if cat == 'Profissional' %}
+                <i class="fas fa-star fa-lg" style="color:#FFD700;"></i>
+            {% elif 'Sub' in cat %}
+                <i class="fas fa-child fa-lg" style="color:#60A5FA;"></i>
+            {% else %}
+                <i class="fas fa-users fa-lg" style="color:#9CA3AF;"></i>
+            {% endif %}
+            <h3>{{ cat }}</h3>
+            <span>{{ atletas_desta_cat | length }} atleta(s)</span>
+        </div>
+
+        <div class="atletas-grid">
+            {% for atleta in atletas_desta_cat %}
+
+            {# ── CARD DO ATLETA ── #}
+            <div class="atleta-card">
+                <div class="card-header-img">
+                    <div class="numero-camisa">#{{ atleta.numero or '?' }}</div>
+                    <div class="header-category">{{ atleta.categoria or '' }}</div>
+                    {% if atleta.foto %}
+                        <img src="{{ url_for('serve_foto_atleta', filename=atleta.foto) }}" class="foto-atleta" alt="{{ atleta.nome }}">
+                    {% else %}
+                        <div class="foto-placeholder"><i class="fas fa-user"></i></div>
+                    {% endif %}
+                </div>
+
+                <div class="card-body-info">
+                    <div class="nome-atleta">{{ atleta.nome }}</div>
+                    <span class="posicao-badge">{{ atleta.posicao or 'Sem posição' }}</span>
+
+                    {% set tem_lesao = namespace(existe=false) %}
+                    {% for ficha in atleta.fichas_medicas %}
+                        {% if ficha.status == 'em_tratamento' %}{% set tem_lesao.existe = true %}{% endif %}
+                    {% endfor %}
+                    {% if tem_lesao.existe %}
+                    <div style="margin-bottom: 10px;">
+                        <a href="{{ url_for('departamento_medico') }}" class="lesao-badge"
+                           style="padding:8px 14px;border-radius:999px;font-size:14px;font-weight:800;text-decoration:none;display:inline-block;">
+                            <i class="fas fa-heartbeat"></i> Lesionado
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    <div class="info-linha"><i class="fas fa-square" style="color:#FACC15 !important;min-width:18px;"></i> <span style="color:#FACC15;font-weight:700;">{{ atleta.cartoes_amarelos or 0 }}</span>&nbsp;<span style="color:#9CA3AF;">Amarelo(s)</span></div>
+                    <div class="info-linha"><i class="fas fa-square" style="color:#EF4444 !important;min-width:18px;"></i> <span style="color:#EF4444;font-weight:700;">{{ atleta.cartoes_vermelhos or 0 }}</span>&nbsp;<span style="color:#9CA3AF;">Vermelho(s)</span></div>
+
+                    {% set jogos_susp_card = [atleta.jogos_suspensao or 0, 1 if (atleta.cartoes_vermelhos or 0) > 0 else 0] | max %}
+                    {% if jogos_susp_card > 0 %}
+                    <div style="margin:10px 0;">
+                        <span style="background:rgba(239,68,68,0.2);color:#EF4444;padding:5px 12px;border-radius:14px;font-size:12px;font-weight:700;">
+                            <i class="fas fa-ban"></i> Suspenso: {{ jogos_susp_card }} jogo(s)
+                        </span>
+                    </div>
+                    {% endif %}
+
+                    {% if atleta.altura %}<div class="info-linha"><i class="fas fa-ruler"></i> {{ "%.2f"|format(atleta.altura) }}m</div>{% endif %}
+                    {% if atleta.peso %}<div class="info-linha"><i class="fas fa-weight-hanging"></i> {{ "%.1f"|format(atleta.peso) }}kg</div>{% endif %}
+                    {% if atleta.telefone %}<div class="info-linha"><i class="fas fa-phone"></i> {{ atleta.telefone }}</div>{% endif %}
+                    {% if atleta.email %}<div class="info-linha"><i class="fas fa-envelope"></i> {{ atleta.email }}</div>{% endif %}
+                    {% if atleta.salario %}<div class="info-linha"><i class="fas fa-euro-sign"></i> € {{ "%.2f"|format(atleta.salario) }}</div>{% endif %}
+                    {% if atleta.premios %}<div class="info-linha"><i class="fas fa-trophy"></i> Prémios: € {{ "%.2f"|format(atleta.premios) }}</div>{% endif %}
+                    {% if atleta.contrato_inicio %}<div class="info-linha"><i class="fas fa-file-signature"></i> Início: {{ atleta.contrato_inicio.strftime('%d/%m/%Y') }}</div>{% endif %}
+                    {% if atleta.contrato_fim %}
+                    <div class="info-linha"><i class="fas fa-calendar-times"></i> Fim: {{ atleta.contrato_fim.strftime('%d/%m/%Y') }}</div>
+                    <div class="info-linha"><i class="fas fa-file-contract"></i> Contrato até {{ atleta.contrato_fim.strftime('%d/%m/%Y') }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="card-actions">
+                    <a href="{{ url_for('editar_atleta', id=atleta.id) }}" class="btn-card btn-editar"><i class="fas fa-edit"></i> Editar</a>
+                    <a href="{{ url_for('editar_atleta', id=atleta.id, tab='desempenho') }}" class="btn-card btn-cartoes"><i class="fas fa-id-card"></i> Cartões</a>
+                    <a href="{{ url_for('deletar_atleta', id=atleta.id) }}" class="btn-card btn-remover" onclick="return confirm('Remover {{ atleta.nome }}?')"><i class="fas fa-trash"></i> Remover</a>
+                </div>
+            </div>
+            {# ── FIM CARD ── #}
+
+            {% endfor %}
+        </div>
+    </div>
+{% endfor %}
+
+{# ── SECÇÃO TODOS — cards repetidos aqui ── #}
+{# Substituir a secção todos acima por uma versão correcta #}
+<script>
+// Substituir o conteúdo da secção "todos" com todos os cards já renderizados
+document.addEventListener('DOMContentLoaded', function() {
+    const sectionTodos = document.getElementById('section-todos');
+    const outrasSeccoes = document.querySelectorAll('.categoria-section:not(#section-todos)');
+    const grid = document.createElement('div');
+    grid.className = 'atletas-grid';
+    outrasSeccoes.forEach(sec => {
+        const cards = sec.querySelectorAll('.atleta-card');
+        cards.forEach(card => grid.appendChild(card.cloneNode(true)));
+    });
+    sectionTodos.innerHTML = '';
+    sectionTodos.appendChild(grid);
+});
+
+function mudarTab(cat) {
+    // Tabs
+    document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector('[data-cat="' + cat + '"]').classList.add('active');
+    // Secções
+    document.querySelectorAll('.categoria-section').forEach(s => s.classList.remove('active'));
+    document.getElementById('section-' + cat).classList.add('active');
+    // Guardar tab activa
+    sessionStorage.setItem('getclub_plantel_tab', cat);
+}
+
+// Restaurar tab da sessão
+document.addEventListener('DOMContentLoaded', function() {
+    const saved = sessionStorage.getItem('getclub_plantel_tab');
+    if (saved && document.getElementById('section-' + saved)) {
+        mudarTab(saved);
+    }
+});
+</script>
+
+{% else %}
+<div class="text-center py-5">
+    <i class="fas fa-futbol fa-5x mb-4" style="color: rgba(255,255,255,0.05);"></i>
+    <h4 class="text-white mb-2">Nenhum atleta cadastrado</h4>
+    <p class="text-muted mb-4">Comece a montar o elenco!</p>
+    <button class="btn-add-flutuante" data-bs-toggle="modal" data-bs-target="#modalAtleta">
+        <i class="fas fa-plus"></i> Primeiro Atleta
+    </button>
+</div>
+{% endif %}
+
+<!-- MODAL DE CADASTRO -->
+<div class="modal fade modal-premium" id="modalAtleta" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-white">
+                    <i class="fas fa-user-plus me-2" style="color: #FFD700;"></i>Cadastrar Novo Atleta
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('atletas') }}" enctype="multipart/form-data">
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nome Completo <span class="text-danger">*</span></label>
+                            <input type="text" name="nome" class="form-control" required placeholder="Nome do atleta">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Data Nascimento</label>
+                            <input type="date" name="data_nascimento" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Nº Camisa</label>
+                            <input type="text" name="numero" class="form-control" placeholder="Ex: 10">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Posição</label>
+                            <select name="posicao" class="form-select">
+                                <option value="">Selecione...</option>
+                                <option>Guarda-Redes</option>
+                                <option>Central</option>
+                                <option>Lateral Direito</option>
+                                <option>Lateral Esquerdo</option>
+                                <option>Médio Central</option>
+                                <option>Médio Defensivo</option>
+                                <option>Médio Ofensivo</option>
+                                <option>Extremo Direito</option>
+                                <option>Extremo Esquerdo</option>
+                                <option>Ponta de Lança</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Categoria</label>
+                            <select name="categoria" class="form-select">
+                                <option value="">Selecione...</option>
+                                <option>Profissional</option>
+                                <option>Sub-23</option>
+                                <option>Sub-20</option>
+                                <option>Sub-17</option>
+                                <option>Sub-15</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Altura (m)</label>
+                            <input type="number" step="0.01" name="altura" class="form-control" placeholder="1.80">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Peso (kg)</label>
+                            <input type="number" step="0.1" name="peso" class="form-control" placeholder="75">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control" placeholder="atleta@email.com">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Telefone</label>
+                            <input type="tel" name="telefone" class="form-control" placeholder="(XX) XXXXX-XXXX">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">IBAN</label>
+                            <input type="text" name="iban" class="form-control" placeholder="PT50 0000 0000 0000 0000 0000 0">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Endereço</label>
+                            <input type="text" name="endereco" class="form-control" placeholder="Rua, número, bairro...">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Salário (€)</label>
+                            <input type="number" step="0.01" name="salario" class="form-control" placeholder="0,00">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Prémios (€)</label>
+                            <input type="number" step="0.01" name="premios" class="form-control" placeholder="0,00">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Início Contrato</label>
+                            <input type="date" name="contrato_inicio" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Fim Contrato</label>
+                            <input type="date" name="contrato_fim" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Foto do Atleta</label>
+                            <input type="file" name="foto" accept="image/*" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 px-4 pb-4">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn-add-flutuante">
+                        <i class="fas fa-save"></i> Salvar Atleta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+<!-- FORCE OVERRIDE -->
+<style>
+.content .atleta-card, html body .content .atleta-card { background: #0a0f19 !important; border: 1px solid rgba(74,85,104,.34) !important; color: #a5adbb !important; }
+.content .atleta-card .card-header-img { background: linear-gradient(135deg,#003bab,#061d5d) !important; }
+.content .atleta-card .card-body-info { background: #0a0f19 !important; color: #a5adbb !important; }
+.content .atleta-card .card-actions { background: #0a0f19 !important; }
+.content .atleta-card .nome-atleta { color: #f8fafc !important; }
+.content .atleta-card .posicao-badge { background: rgba(255,215,0,.20) !important; color: #ffdd16 !important; }
+.content .atleta-card .categoria-tag { background: rgba(0,51,160,.58) !important; color: #60a5fa !important; }
+.content .atleta-card .info-linha { color: #a5adbb !important; }
+.content .atleta-card .btn-card { background: rgba(255,255,255,.04) !important; color: #f8fafc !important; border: 1px solid rgba(148,163,184,.14) !important; }
+.content .atleta-card .btn-editar { background: rgba(255,215,0,.12) !important; color: #ffdd16 !important; border-color: rgba(255,215,0,.32) !important; }
+.content .atleta-card .btn-cartoes { background: rgba(245,158,11,.15) !important; color: #f59e0b !important; border-color: rgba(245,158,11,.36) !important; }
+.content .atleta-card .btn-remover { background: rgba(239,68,68,.15) !important; color: #ff4b4b !important; border-color: rgba(239,68,68,.34) !important; }
+.content .atleta-card .lesao-badge { background: rgba(239,68,68,.22) !important; color: #ff4b4b !important; }
+.content .cat-tab { background: #dde8ff !important; color: #0b3ea8 !important; border: 1px solid #a0b8f0 !important; font-weight: 700 !important; }
+.content .cat-tab.active { background: linear-gradient(135deg,#0033A0,#061d5d) !important; color: #FFD700 !important; }
+.content .categoria-header { background: linear-gradient(135deg,rgba(0,51,160,.25),rgba(6,29,93,.25)) !important; }
+.content .categoria-header h3 { color: #fff !important; }
+</style>

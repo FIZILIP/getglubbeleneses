@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Editar Atleta — {{ club_display_name }}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --purple: #6c2bd9;
+    --purple-light: #7c3aed;
+    --purple-dark: #5b21b6;
+    --purple-bg: #f5f0ff;
+    --white: #ffffff;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-900: #111827;
+    --green: #10b981;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+    --border-radius: 10px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--gray-100);
+    color: var(--gray-900);
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-200);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow);
+  }
+  .topbar-left { display: flex; align-items: center; gap: 16px; }
+  .logo { font-weight: 700; font-size: 18px; color: var(--purple); letter-spacing: -0.5px; }
+  .logo span { color: var(--gray-900); }
+  .back-btn {
+    display: flex; align-items: center; gap: 6px;
+    color: var(--gray-600); font-size: 13px; font-weight: 500;
+    cursor: pointer; text-decoration: none;
+    padding: 6px 10px; border-radius: 6px;
+    transition: background .15s;
+  }
+  .back-btn:hover { background: var(--gray-100); color: var(--gray-900); }
+  .back-btn svg { width: 16px; height: 16px; }
+
+  /* ── ATHLETE HEADER ── */
+  .athlete-header {
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-200);
+    padding: 20px 24px 0;
+  }
+  .athlete-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .avatar-wrapper {
+    position: relative;
+    width: 72px; height: 72px;
+    flex-shrink: 0;
+  }
+  .avatar-wrapper img {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--gray-200);
+  }
+  .avatar-placeholder {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple-bg), var(--gray-200));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 700; color: var(--purple);
+    border: 3px solid var(--gray-200);
+  }
+  .avatar-upload-btn {
+    position: absolute; bottom: 0; right: 0;
+    background: var(--purple);
+    border: 2px solid white;
+    border-radius: 50%;
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .avatar-upload-btn:hover { background: var(--purple-dark); }
+  .avatar-upload-btn svg { width: 12px; height: 12px; fill: white; }
+  .athlete-info h1 { font-size: 20px; font-weight: 700; color: var(--gray-900); }
+  .athlete-info .sub {
+    font-size: 13px; color: var(--gray-500); margin-top: 2px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  }
+  .badge-green { background: #d1fae5; color: #065f46; }
+  .badge-yellow { background: #fef3c7; color: #92400e; }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  .badge-gray { background: var(--gray-100); color: var(--gray-600); }
+
+  /* TABS */
+  .tabs {
+    display: flex; gap: 0;
+    border-bottom: none;
+  }
+  .tab {
+    padding: 10px 16px;
+    font-size: 13px; font-weight: 500;
+    color: var(--gray-500);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .tab:hover { color: var(--gray-900); }
+  .tab.active { color: var(--purple); border-bottom-color: var(--purple); font-weight: 600; }
+
+  /* ── MAIN LAYOUT ── */
+  .main {
+    max-width: 1200px;
+    margin: 24px auto;
+    padding: 0 24px;
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--gray-100);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card-header h2 {
+    font-size: 14px; font-weight: 600; color: var(--gray-900);
+  }
+  .card-body { padding: 20px; }
+
+  /* ── FORM FIELDS ── */
+  .field-grid {
+    display: grid;
+    gap: 14px;
+  }
+  .field-grid-2 { grid-template-columns: 1fr 1fr; }
+  .field-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label {
+    font-size: 11px; font-weight: 600; color: var(--gray-500);
+    text-transform: uppercase; letter-spacing: .5px;
+  }
+  .field input,
+  .field select,
+  .field textarea {
+    padding: 8px 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: 7px;
+    font-size: 13px; font-family: 'Inter', sans-serif;
+    color: var(--gray-900);
+    background: var(--white);
+    transition: border .15s, box-shadow .15s;
+    outline: none;
+    width: 100%;
+  }
+  .field input:focus,
+  .field select:focus,
+  .field textarea:focus {
+    border-color: var(--purple);
+    box-shadow: 0 0 0 3px rgba(108,43,217,.1);
+  }
+  .field textarea { resize: vertical; min-height: 80px; }
+  .field select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+
+  .field-prefix {
+    position: relative;
+  }
+  .field-prefix input { padding-left: 32px; }
+  .field-prefix .prefix {
+    position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    font-size: 13px; color: var(--gray-400); font-weight: 500;
+  }
+
+  .divider {
+    height: 1px; background: var(--gray-100); margin: 16px 0;
+  }
+  .section-label {
+    font-size: 11px; font-weight: 700; color: var(--purple);
+    text-transform: uppercase; letter-spacing: .8px;
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::after {
+    content: ''; flex: 1; height: 1px; background: var(--purple-bg);
+  }
+
+  /* ── STATUS TOGGLES ── */
+  .status-pills {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .status-pill {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px; font-weight: 600;
+    cursor: pointer;
+    border: 2px solid var(--gray-200);
+    color: var(--gray-500);
+    transition: all .15s;
+    background: var(--white);
+  }
+  .status-pill:hover { border-color: var(--gray-400); }
+  .status-pill.active-green { border-color: var(--green); background: #d1fae5; color: #065f46; }
+  .status-pill.active-yellow { border-color: var(--yellow); background: #fef3c7; color: #92400e; }
+  .status-pill.active-red { border-color: var(--red); background: #fee2e2; color: #991b1b; }
+
+  /* ── CARDS TABLE (Cartões) ── */
+  .cards-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+  }
+  .card-counter {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+  .card-counter .cc-label {
+    font-size: 10px; font-weight: 700; color: var(--gray-400);
+    text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px;
+  }
+  .card-counter .cc-icon { font-size: 20px; margin-bottom: 4px; }
+  .card-counter input {
+    width: 100%; border: 1px solid var(--gray-200); border-radius: 6px;
+    padding: 6px; text-align: center; font-size: 16px; font-weight: 700;
+    font-family: 'Inter', sans-serif; color: var(--gray-900);
+  }
+  .card-counter input:focus { border-color: var(--purple); outline: none; box-shadow: 0 0 0 3px rgba(108,43,217,.1); }
+
+  /* ── SOCIAL LINKS ── */
+  .social-grid {
+    display: grid; gap: 10px;
+  }
+  .social-field {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .social-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+  .social-icon.wiki { background: #f3f4f6; color: #374151; }
+  .social-icon.ig { background: linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888); color: white; }
+  .social-icon.tw { background: #1da1f2; color: white; }
+  .social-icon.yt { background: #ff0000; color: white; }
+  .social-field input {
+    flex: 1; padding: 7px 11px;
+    border: 1px solid var(--gray-200); border-radius: 7px;
+    font-size: 13px; font-family: 'Inter', sans-serif;
+    color: var(--gray-900); outline: none;
+    transition: border .15s, box-shadow .15s;
+  }
+  .social-field input:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(108,43,217,.1); }
+
+  /* ── TRANSFER TABLE ── */
+  .transfer-row {
+    display: grid; grid-template-columns: 80px 110px 1fr 1fr 140px; gap: 8px;
+    align-items: center; padding: 10px 0; border-bottom: 1px solid var(--gray-100);
+  }
+  .transfer-row:last-child { border-bottom: none; }
+  .transfer-row input, .transfer-row select {
+    padding: 6px 9px; border: 1px solid var(--gray-200); border-radius: 6px;
+    font-size: 12px; font-family: 'Inter', sans-serif; color: var(--gray-900);
+    width: 100%; outline: none; transition: border .15s;
+  }
+  .transfer-row input:focus, .transfer-row select:focus {
+    border-color: var(--purple); box-shadow: 0 0 0 2px rgba(108,43,217,.08);
+  }
+  .transfer-header {
+    display: grid; grid-template-columns: 80px 110px 1fr 1fr 140px; gap: 8px;
+    padding: 0 0 8px;
+    font-size: 10px; font-weight: 700; color: var(--gray-400); text-transform: uppercase;
+  }
+  .btn-add-row {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 600; color: var(--purple);
+    cursor: pointer; padding: 8px 0; margin-top: 4px;
+    background: none; border: none; font-family: 'Inter', sans-serif;
+  }
+  .btn-add-row:hover { color: var(--purple-dark); }
+  .btn-delete {
+    background: none; border: none; cursor: pointer;
+    color: var(--gray-300); padding: 4px;
+    border-radius: 4px; transition: color .15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .btn-delete:hover { color: var(--red); }
+  .btn-delete svg { width: 14px; height: 14px; }
+
+  /* ── PERFORMANCE TABLE ── */
+  .perf-table { width: 100%; border-collapse: collapse; }
+  .perf-table th {
+    font-size: 10px; font-weight: 700; color: var(--gray-400);
+    text-transform: uppercase; text-align: center;
+    padding: 8px 6px; border-bottom: 2px solid var(--gray-100);
+  }
+  .perf-table th:first-child { text-align: left; }
+  .perf-table td {
+    padding: 8px 6px; border-bottom: 1px solid var(--gray-50);
+    text-align: center;
+  }
+  .perf-table td:first-child { text-align: left; }
+  .perf-table tr:last-child td { border-bottom: none; }
+  .perf-table input[type="number"] {
+    width: 56px; padding: 5px 6px; text-align: center;
+    border: 1px solid var(--gray-200); border-radius: 6px;
+    font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif;
+    color: var(--gray-900); outline: none; transition: border .15s;
+  }
+  .perf-table input[type="number"]:focus {
+    border-color: var(--purple); box-shadow: 0 0 0 2px rgba(108,43,217,.1);
+  }
+  .perf-table input[type="text"] {
+    width: 120px; padding: 5px 8px;
+    border: 1px solid var(--gray-200); border-radius: 6px;
+    font-size: 12px; font-family: 'Inter', sans-serif; color: var(--gray-900);
+    outline: none; transition: border .15s;
+  }
+  .perf-table input[type="text"]:focus { border-color: var(--purple); box-shadow: 0 0 0 2px rgba(108,43,217,.1); }
+  .competition-icon { font-size: 16px; }
+
+  /* ── SAVE BAR ── */
+  .save-bar {
+    position: sticky;
+    bottom: 0;
+    background: var(--white);
+    border-top: 1px solid var(--gray-200);
+    padding: 14px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.06);
+    z-index: 50;
+  }
+  .save-bar .hint { font-size: 12px; color: var(--gray-400); }
+  .save-bar .hint span { color: var(--purple); font-weight: 600; }
+  .btn-group { display: flex; gap: 10px; }
+  .btn {
+    padding: 9px 20px; border-radius: 8px;
+    font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif;
+    cursor: pointer; border: none; transition: all .15s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn-secondary {
+    background: var(--white); color: var(--gray-700);
+    border: 1px solid var(--gray-200);
+  }
+  .btn-secondary:hover { background: var(--gray-50); }
+  .btn-primary {
+    background: var(--purple); color: white;
+  }
+  .btn-primary:hover { background: var(--purple-dark); box-shadow: 0 4px 12px rgba(108,43,217,.3); }
+  .btn-danger {
+    background: white; color: var(--red);
+    border: 1px solid #fecaca;
+  }
+  .btn-danger:hover { background: #fff1f2; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 80px; right: 24px;
+    background: var(--gray-900); color: white;
+    padding: 12px 20px; border-radius: 10px;
+    font-size: 13px; font-weight: 500;
+    display: flex; align-items: center; gap: 10px;
+    transform: translateY(20px); opacity: 0;
+    transition: all .3s ease;
+    z-index: 200;
+    box-shadow: var(--shadow-md);
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast .toast-icon { font-size: 16px; }
+
+  /* ── RIGHT COLUMN STACK ── */
+  .right-col { display: flex; flex-direction: column; gap: 20px; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">{{ club_display_name }}</div>
+    <a class="back-btn" onclick="history.back()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Voltar ao perfil
+    </a>
+  </div>
+  <div class="btn-group">
+    <button class="btn btn-danger" onclick="confirmDelete()">🗑 Excluir Atleta</button>
+  </div>
+</div>
+
+<!-- ATHLETE HEADER -->
+<div class="athlete-header">
+  <div class="athlete-meta">
+    <div class="avatar-wrapper">
+      <div class="avatar-placeholder" id="avatarDisplay">MR</div>
+      <label class="avatar-upload-btn" for="fotoInput" title="Alterar foto">
+        <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      </label>
+      <input type="file" id="fotoInput" accept="image/*" style="display:none" onchange="previewAvatar(this)">
+    </div>
+    <div class="athlete-info">
+      <h1 id="headerName">Miguel Pereira Ribeiro</h1>
+      <div class="sub">
+        🇧🇷 Brasil
+        <span id="headerAge">17 anos</span>
+        <span>·</span>
+        <span id="headerPos">Atacante</span>
+        <span>·</span>
+        <span class="badge badge-green" id="headerStatus">● Ativo</span>
+      </div>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('dados')">Dados Pessoais</div>
+    <div class="tab" onclick="switchTab('contrato')">Contrato & Clube</div>
+    <div class="tab" onclick="switchTab('desempenho')">Desempenho</div>
+    <div class="tab" onclick="switchTab('transferencias')">Transferências</div>
+    <div class="tab" onclick="switchTab('redes')">Redes Sociais</div>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+  <!-- LEFT COLUMN -->
+  <div class="left-col">
+
+    <!-- DADOS PESSOAIS -->
+    <div class="card" id="tab-dados">
+      <div class="card-header">
+        <h2>👤 Visão Geral</h2>
+        <span class="badge badge-gray">Dados Pessoais</span>
+      </div>
+      <div class="card-body">
+        <div class="section-label">Identificação</div>
+        <div class="field-grid">
+          <div class="field">
+            <label>Nome Completo</label>
+            <input type="text" id="nomeCompleto" value="Miguel Pereira Ribeiro" oninput="updateHeader()">
+          </div>
+          <div class="field-grid field-grid-2">
+            <div class="field">
+              <label>Data de Nascimento</label>
+              <input type="date" id="dataNasc" value="2009-01-07" oninput="updateAge()">
+            </div>
+            <div class="field">
+              <label>Nacionalidade</label>
+              <select id="nacionalidade">
+                <option value="Brasil" selected>🇧🇷 Brasil</option>
+                <option value="Portugal">🇵🇹 Portugal</option>
+                <option value="Argentina">🇦🇷 Argentina</option>
+                <option value="Espanha">🇪🇸 Espanha</option>
+                <option value="França">🇫🇷 França</option>
+                <option value="Outro">🌍 Outro</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="section-label">Físico</div>
+        <div class="field-grid field-grid-2">
+          <div class="field">
+            <label>Altura (cm)</label>
+            <input type="number" id="altura" value="181" min="140" max="220">
+          </div>
+          <div class="field">
+            <label>Peso (kg)</label>
+            <input type="number" id="peso" value="72" min="40" max="120">
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="section-label">Perfil de Jogo</div>
+        <div class="field-grid field-grid-2">
+          <div class="field">
+            <label>Posição</label>
+            <select id="posicao" onchange="updateHeader()">
+              <option>Atacante</option>
+              <option>Ponta Direita</option>
+              <option>Ponta Esquerda</option>
+              <option>Meia-Atacante</option>
+              <option>Meia</option>
+              <option>Volante</option>
+              <option>Lateral Direito</option>
+              <option>Lateral Esquerdo</option>
+              <option>Zagueiro</option>
+              <option>Goleiro</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Pé Preferencial</label>
+            <select id="pePref">
+              <option>Direito</option>
+              <option>Esquerdo</option>
+              <option>Ambidestro</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Número da Camisa</label>
+            <input type="number" id="numeroCamisa" value="9" min="1" max="99">
+          </div>
+          <div class="field">
+            <label>Categoria</label>
+            <select id="categoria">
+              <option>Profissional</option>
+              <option>Sub-17</option>
+              <option>Sub-20</option>
+              <option>Principal</option>
+              <option>Reservas</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="section-label">Carreira</div>
+        <div class="field-grid field-grid-2">
+          <div class="field">
+            <label>Gols na Carreira</label>
+            <input type="number" id="golsCarreira" value="71" min="0">
+          </div>
+          <div class="field">
+            <label>Jogos na Carreira</label>
+            <input type="number" id="jogosCarreira" value="129" min="0">
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="section-label">Status</div>
+        <div class="status-pills">
+          <div class="status-pill active-green" onclick="setStatus(this,'ativo','green')" id="status-ativo">● Ativo</div>
+          <div class="status-pill" onclick="setStatus(this,'lesionado','yellow')" id="status-lesionado">🤕 Lesionado</div>
+          <div class="status-pill" onclick="setStatus(this,'suspenso','red')" id="status-suspenso">🚫 Suspenso</div>
+          <div class="status-pill" onclick="setStatus(this,'inativo','gray')" id="status-inativo">⏸ Inativo</div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="section-label">Cartões & Suspensões</div>
+        <div class="cards-row">
+          <div class="card-counter">
+            <div class="cc-label">Amarelos</div>
+            <div class="cc-icon">🟨</div>
+            <input type="number" value="6" min="0">
+          </div>
+          <div class="card-counter">
+            <div class="cc-label">Vermelhos</div>
+            <div class="cc-icon">🟥</div>
+            <input type="number" value="0" min="0">
+          </div>
+          <div class="card-counter">
+            <div class="cc-label">Suspensões</div>
+            <div class="cc-icon">⛔</div>
+            <input type="number" value="0" min="0">
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="section-label">Contato</div>
+        <div class="field-grid">
+          <div class="field">
+            <label>Telefone</label>
+            <input type="tel" placeholder="+55 (11) 99999-9999">
+          </div>
+          <div class="field">
+            <label>E-mail</label>
+            <input type="email" placeholder="atleta@email.com">
+          </div>
+          <div class="field">
+            <label>Endereço</label>
+            <input type="text" placeholder="Rua, Número, Bairro">
+          </div>
+          <div class="field">
+            <label>IBAN / Conta Bancária</label>
+            <input type="text" placeholder="PT50 0000 0000 0000 0000 0000 0">
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div class="right-col">
+
+    <!-- CONTRATO & CLUBE -->
+    <div class="card" id="tab-contrato">
+      <div class="card-header">
+        <h2>🏟 Contrato & Clube Atual</h2>
+      </div>
+      <div class="card-body">
+        <div class="field-grid field-grid-2">
+          <div class="field">
+            <label>Clube Atual</label>
+            <input type="text" value="Footure FC">
+          </div>
+          <div class="field">
+            <label>Valor de Mercado (M€)</label>
+            <div class="field-prefix">
+              <span class="prefix">€</span>
+              <input type="number" value="22" step="0.1" min="0">
+            </div>
+          </div>
+          <div class="field">
+            <label>Início do Contrato</label>
+            <input type="date" value="2022-01-01">
+          </div>
+          <div class="field">
+            <label>Fim do Contrato</label>
+            <input type="date" value="2029-12-31">
+          </div>
+          <div class="field">
+            <label>Salário Mensal (€)</label>
+            <div class="field-prefix">
+              <span class="prefix">€</span>
+              <input type="number" value="5000" step="100" min="0">
+          </div>
+          </div>
+          <div class="field">
+            <label>Prémios / Bónus (€)</label>
+            <div class="field-prefix">
+              <span class="prefix">€</span>
+              <input type="number" value="1000" step="100" min="0">
+            </div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="section-label">Agente</div>
+        <div class="field-grid field-grid-2">
+          <div class="field">
+            <label>Nome do Agente</label>
+            <input type="text" value="Footure Agency">
+          </div>
+          <div class="field">
+            <label>Contato do Agente</label>
+            <input type="tel" placeholder="+351 912 345 678">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DESEMPENHO NAS COMPETIÇÕES -->
+    <div class="card" id="tab-desempenho">
+      <div class="card-header">
+        <h2>📊 Desempenho nas Últimas Competições</h2>
+        <button class="btn btn-secondary" style="padding:5px 12px;font-size:12px" onclick="addPerfRow()">+ Linha</button>
+      </div>
+      <div class="card-body" style="overflow-x:auto">
+        <table class="perf-table" id="perfTable">
+          <thead>
+            <tr>
+              <th>Temporada</th>
+              <th>Competição</th>
+              <th title="Minutos">⏱</th>
+              <th title="Jogos">🟩</th>
+              <th title="Titular">👕</th>
+              <th title="Substituições">🔄</th>
+              <th title="Gols">⚽</th>
+              <th title="Assistências">🅰</th>
+              <th title="Amarelos">🟨</th>
+              <th title="Vermelhos">🟥</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="perfBody">
+            <tr>
+              <td><input type="text" value="2026" style="width:55px"></td>
+              <td><input type="text" value="Brasileiro - Serie A" style="width:130px"></td>
+              <td><input type="number" value="2268" style="width:56px"></td>
+              <td><input type="number" value="32" style="width:48px"></td>
+              <td><input type="number" value="32" style="width:48px"></td>
+              <td><input type="number" value="10" style="width:48px"></td>
+              <td><input type="number" value="8" style="width:48px"></td>
+              <td><input type="number" value="6" style="width:48px"></td>
+              <td><input type="number" value="0" style="width:48px"></td>
+              <td><input type="number" value="0" style="width:48px"></td>
+              <td><button class="btn-delete" onclick="deleteRow(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button></td>
+            </tr>
+            <tr>
+              <td><input type="text" value="2026" style="width:55px"></td>
+              <td><input type="text" value="Copa do Brasil" style="width:130px"></td>
+              <td><input type="number" value="1456" style="width:56px"></td>
+              <td><input type="number" value="8" style="width:48px"></td>
+              <td><input type="number" value="8" style="width:48px"></td>
+              <td><input type="number" value="0" style="width:48px"></td>
+              <td><input type="number" value="3" style="width:48px"></td>
+              <td><input type="number" value="1" style="width:48px"></td>
+              <td><input type="number" value="0" style="width:48px"></td>
+              <td><input type="number" value="0" style="width:48px"></td>
+              <td><button class="btn-delete" onclick="deleteRow(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button></td>
+            </tr>
+            <tr>
+              <td><input type="text" value="2026" style="width:55px"></td>
+              <td><input type="text" value="Conmebol Libertadores" style="width:130px"></td>
+              <td><input type="number" value="379" style="width:56px"></td>
+              <td><input type="number" value="6" style="width:48px"></td>
+              <td><input type="number" value="5" style="width:48px"></td>
+              <td><input type="number" value="1" style="width:48px"></td>
+              <td><input type="number" value="2" style="width:48px"></td>
+              <td><input type="number" value="2" style="width:48px"></td>
+              <td><input type="number" value="0" style="width:48px"></td>
+              <td><input type="number" value="0" style="width:48px"></td>
+              <td><button class="btn-delete" onclick="deleteRow(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button></td>
+            </tr>
+            <tr>
+              <td><input type="text" value="2026" style="width:55px"></td>
+              <td><input type="text" value="Carioca Serie A" style="width:130px"></td>
+              <td><input type="number" value="788" style="width:56px"></td>
+              <td><input type="number" value="12" style="width:48px"></td>
+              <td><input type="number" value="10" style="width:48px"></td>
+              <td><input type="number" value="2" style="width:48px"></td>
+              <td><input type="number" value="7" style="width:48px"></td>
+              <td><input type="number" value="1" style="width:48px"></td>
+              <td><input type="number" value="0" style="width:48px"></td>
+              <td><input type="number" value="0" style="width:48px"></td>
+              <td><button class="btn-delete" onclick="deleteRow(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button></td>
+            </tr>
+          </tbody>
+        </table>
+        <button class="btn-add-row" onclick="addPerfRow()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Adicionar competição
+        </button>
+      </div>
+    </div>
+
+    <!-- TRANSFERÊNCIAS -->
+    <div class="card" id="tab-transferencias">
+      <div class="card-header">
+        <h2>🔄 Histórico de Transferências</h2>
+        <button class="btn btn-secondary" style="padding:5px 12px;font-size:12px" onclick="addTransferRow()">+ Linha</button>
+      </div>
+      <div class="card-body">
+        <div class="transfer-header">
+          <span>Temporada</span>
+          <span>Data</span>
+          <span>De</span>
+          <span>Para</span>
+          <span>Valor</span>
+        </div>
+        <div id="transferList">
+          <div class="transfer-row">
+            <input type="text" value="2022/2021">
+            <input type="date" value="2022-07-01">
+            <input type="text" value="Clube B">
+            <input type="text" value="Footure FC">
+            <div style="display:flex;gap:6px;align-items:center">
+              <input type="text" value="Custo Zero" style="flex:1">
+              <button class="btn-delete" onclick="this.closest('.transfer-row').remove()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+            </div>
+          </div>
+          <div class="transfer-row">
+            <input type="text" value="2020/2021">
+            <input type="date" value="2020-07-01">
+            <input type="text" value="Clube A">
+            <input type="text" value="Clube B">
+            <div style="display:flex;gap:6px;align-items:center">
+              <input type="text" value="Custo Zero" style="flex:1">
+              <button class="btn-delete" onclick="this.closest('.transfer-row').remove()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+            </div>
+          </div>
+          <div class="transfer-row">
+            <input type="text" value="2020/2019">
+            <input type="date" value="2020-01-01">
+            <input type="text" value="Footure FC">
+            <input type="text" value="Clube A">
+            <div style="display:flex;gap:6px;align-items:center">
+              <input type="text" value="2,90 M €" style="flex:1">
+              <button class="btn-delete" onclick="this.closest('.transfer-row').remove()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+            </div>
+          </div>
+        </div>
+        <button class="btn-add-row" onclick="addTransferRow()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Adicionar transferência
+        </button>
+      </div>
+    </div>
+
+    <!-- REDES SOCIAIS -->
+    <div class="card" id="tab-redes">
+      <div class="card-header">
+        <h2>🌐 Redes Sociais & Links</h2>
+      </div>
+      <div class="card-body">
+        <div class="social-grid">
+          <div class="social-field">
+            <div class="social-icon wiki">W</div>
+            <input type="url" placeholder="https://pt.wikipedia.org/wiki/...">
+          </div>
+          <div class="social-field">
+            <div class="social-icon ig">📷</div>
+            <input type="text" placeholder="@usuario no Instagram">
+          </div>
+          <div class="social-field">
+            <div class="social-icon tw">𝕏</div>
+            <input type="text" placeholder="@usuario no X (Twitter)">
+          </div>
+          <div class="social-field">
+            <div class="social-icon yt">▶</div>
+            <input type="url" placeholder="https://youtube.com/@canal">
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="section-label">Links Profissionais</div>
+        <div class="field-grid">
+          <div class="field">
+            <label>Transfermarkt</label>
+            <input type="url" placeholder="https://www.transfermarkt.com.br/...">
+          </div>
+          <div class="field">
+            <label>SofaScore</label>
+            <input type="url" placeholder="https://www.sofascore.com/pt/...">
+          </div>
+          <div class="field">
+            <label>Vídeo / Highlights</label>
+            <input type="url" placeholder="https://youtube.com/...">
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- SAVE BAR -->
+<div class="save-bar">
+  <div class="hint">Última edição: <span>hoje, 14:32</span> por Admin</div>
+  <div class="btn-group">
+    <button class="btn btn-secondary" onclick="history.back()">Cancelar</button>
+    <button class="btn btn-primary" onclick="saveForm()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      Guardar Alterações
+    </button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-icon">✅</span>
+  <span id="toastMsg">Atleta atualizado com sucesso!</span>
+</div>
+
+<script>
+  // Update header live
+  function updateHeader() {
+    document.getElementById('headerName').textContent = document.getElementById('nomeCompleto').value;
+    document.getElementById('headerPos').textContent = document.getElementById('posicao').value;
+  }
+
+  function updateAge() {
+    const dob = new Date(document.getElementById('dataNasc').value);
+    const age = Math.floor((new Date() - dob) / (365.25 * 24 * 3600 * 1000));
+    document.getElementById('headerAge').textContent = age + ' anos';
+  }
+
+  // Avatar preview
+  function previewAvatar(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const d = document.getElementById('avatarDisplay');
+      d.innerHTML = `<img src="${e.target.result}" style="width:72px;height:72px;border-radius:50%;object-fit:cover">`;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // Status pills
+  function setStatus(el, status, color) {
+    document.querySelectorAll('.status-pill').forEach(p => p.className = 'status-pill');
+    el.classList.add('active-' + color);
+    const map = { ativo: '● Ativo', lesionado: '🤕 Lesionado', suspenso: '🚫 Suspenso', inativo: '⏸ Inativo' };
+    const badgeMap = { ativo: 'badge-green', lesionado: 'badge-yellow', suspenso: 'badge-red', inativo: 'badge-gray' };
+    const h = document.getElementById('headerStatus');
+    h.textContent = map[status];
+    h.className = 'badge ' + badgeMap[status];
+  }
+
+  // Delete row
+  function deleteRow(btn) {
+    btn.closest('tr').remove();
+  }
+
+  // Add performance row
+  function addPerfRow() {
+    const tbody = document.getElementById('perfBody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" value="${new Date().getFullYear()}" style="width:55px"></td>
+      <td><input type="text" placeholder="Competição" style="width:130px"></td>
+      <td><input type="number" value="0" style="width:56px"></td>
+      <td><input type="number" value="0" style="width:48px"></td>
+      <td><input type="number" value="0" style="width:48px"></td>
+      <td><input type="number" value="0" style="width:48px"></td>
+      <td><input type="number" value="0" style="width:48px"></td>
+      <td><input type="number" value="0" style="width:48px"></td>
+      <td><input type="number" value="0" style="width:48px"></td>
+      <td><input type="number" value="0" style="width:48px"></td>
+      <td><button class="btn-delete" onclick="deleteRow(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button></td>
+    `;
+    tbody.appendChild(tr);
+    tr.querySelector('input').focus();
+  }
+
+  // Add transfer row
+  function addTransferRow() {
+    const list = document.getElementById('transferList');
+    const div = document.createElement('div');
+    div.className = 'transfer-row';
+    div.innerHTML = `
+      <input type="text" placeholder="2026/2025">
+      <input type="date">
+      <input type="text" placeholder="Clube de origem">
+      <input type="text" placeholder="Clube de destino">
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="text" placeholder="Valor (€)" style="flex:1">
+        <button class="btn-delete" onclick="this.closest('.transfer-row').remove()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+      </div>
+    `;
+    list.appendChild(div);
+    div.querySelector('input').focus();
+  }
+
+  // Tab switch (highlight only, all cards always visible)
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    // Scroll to section
+    const el = document.getElementById('tab-' + tab);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // Save toast
+  function saveForm() {
+    showToast('✅', 'Atleta atualizado com sucesso!');
+  }
+
+  function confirmDelete() {
+    if (confirm('Tem certeza que deseja excluir este atleta? Esta ação não pode ser desfeita.')) {
+      showToast('🗑', 'Atleta excluído.');
+    }
+  }
+
+  function showToast(icon, msg) {
+    const t = document.getElementById('toast');
+    document.getElementById('toast').querySelector('.toast-icon').textContent = icon;
+    document.getElementById('toastMsg').textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTitle">Novo Atleta — {{ club_display_name }}</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --purple:#6c2bd9; --purple-h:#7c3aed; --purple-d:#5b21b6;
+  --purple-bg:#f5f0ff; --purple-20:rgba(108,43,217,.12);
+  --white:#fff; --gray-50:#f9fafb; --gray-100:#f3f4f6;
+  --gray-200:#e5e7eb; --gray-300:#d1d5db; --gray-400:#9ca3af;
+  --gray-500:#6b7280; --gray-600:#4b5563; --gray-700:#374151; --gray-900:#111827;
+  --green:#10b981; --red:#ef4444; --yellow:#f59e0b; --blue:#3b82f6;
+  --radius:10px; --sh:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05);
+  --sh-md:0 4px 16px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--gray-100);color:var(--gray-900);font-size:14px;min-height:100vh}
+
+/* MODE BANNER */
+.mode-banner{
+  background:linear-gradient(90deg,var(--purple),var(--purple-h));
+  color:white;text-align:center;padding:7px 16px;
+  font-size:12px;font-weight:600;letter-spacing:.3px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.mode-banner .mode-icon{font-size:14px}
+
+/* TOPBAR */
+.topbar{
+  background:var(--white);border-bottom:1px solid var(--gray-200);
+  padding:0 24px;height:56px;display:flex;align-items:center;
+  justify-content:space-between;position:sticky;top:0;z-index:100;
+  box-shadow:var(--sh);
+}
+.topbar-left{display:flex;align-items:center;gap:14px}
+.club-brand{display:flex;align-items:center;gap:9px}
+.club-logo{
+  width:43px;height:43px;border-radius:50%;
+  background:linear-gradient(135deg,#6c2bd9,#3b82f6);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:800;color:white;
+  box-shadow:0 2px 8px rgba(108,43,217,.3);
+  flex-shrink:0; overflow:hidden;
+}
+.club-logo img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.club-logo-upload{cursor:pointer;position:relative}
+.club-logo-upload input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.logo-text{font-weight:800;font-size:21px;color:var(--gray-900);letter-spacing:-.5px}
+.logo-text span{color:var(--purple)}
+.back-btn{
+  display:flex;align-items:center;gap:5px;color:var(--gray-500);
+  font-size:13px;font-weight:500;cursor:pointer;padding:6px 10px;
+  border-radius:6px;transition:.15s;text-decoration:none;border:none;background:none;
+}
+.back-btn:hover{background:var(--gray-100);color:var(--gray-900)}
+.divider-v{width:1px;height:24px;background:var(--gray-200)}
+
+/* ATHLETE HEADER */
+.ath-header{
+  background:var(--white);border-bottom:1px solid var(--gray-200);
+  padding:0 24px;
+}
+.ath-meta{display:flex;align-items:center;gap:16px;padding:18px 0 14px}
+
+/* PHOTO — STICKY */
+.photo-sticky-wrap{
+  position:sticky;top:56px;z-index:80;
+  align-self:flex-start;
+}
+.photo-block{
+  background:var(--white);border:1px solid var(--gray-200);
+  border-radius:var(--radius);box-shadow:var(--sh);
+  padding:20px;display:flex;flex-direction:column;align-items:center;gap:12px;
+  min-width:220px;
+}
+.avatar-ring{
+  width:143px;height:143px;border-radius:50%;
+  border:3px solid var(--gray-200);
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;position:relative;
+  background:linear-gradient(135deg,var(--purple-bg),var(--gray-100));
+  transition:.2s;
+}
+.avatar-ring:hover .avatar-overlay{opacity:1}
+.avatar-ring img{width:100%;height:100%;object-fit:cover}
+.avatar-initials{font-size:47px;font-weight:800;color:var(--purple)}
+.avatar-overlay{
+  position:absolute;inset:0;background:rgba(108,43,217,.65);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:.2s;cursor:pointer;border-radius:50%;
+  flex-direction:column;gap:4px;
+}
+.avatar-overlay svg{width:22px;height:22px;stroke:white;fill:none;stroke-width:2}
+.avatar-overlay span{color:white;font-size:10px;font-weight:700}
+.file-input-hidden{
+  position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;
+  pointer-events:none;
+}
+.photo-name{font-weight:700;font-size:18px;text-align:center;color:var(--gray-900)}
+.photo-sub{font-size:14px;color:var(--gray-400);text-align:center;margin-top:2px}
+.photo-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:4px 12px;border-radius:20px;font-size:13px;font-weight:700;
+  margin-top:2px;
+}
+.bg-green{background:#d1fae5;color:#065f46}
+.bg-yellow{background:#fef3c7;color:#92400e}
+.bg-red{background:#fee2e2;color:#991b1b}
+.bg-gray{background:var(--gray-100);color:var(--gray-600)}
+.bg-blue{background:#dbeafe;color:#1e40af}
+
+/* TABS */
+.tabs{display:flex;gap:0}
+.tab{
+  padding:10px 16px;font-size:13px;font-weight:500;
+  color:var(--gray-500);cursor:pointer;
+  border-bottom:2px solid transparent;transition:.15s;white-space:nowrap;
+}
+.tab:hover{color:var(--gray-900)}
+.tab.active{color:var(--purple);border-bottom-color:var(--purple);font-weight:700}
+
+/* LAYOUT */
+.main{
+  max-width:1280px;margin:24px auto;padding:0 24px;
+  display:grid;grid-template-columns:200px 1fr;gap:20px;align-items:start;
+}
+
+/* TAB PANELS */
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* CARDS */
+.card{
+  background:var(--white);border:1px solid var(--gray-200);
+  border-radius:var(--radius);box-shadow:var(--sh);overflow:hidden;
+  margin-bottom:16px;
+}
+.card:last-child{margin-bottom:0}
+.card-header{
+  padding:13px 20px;border-bottom:1px solid var(--gray-100);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.card-header h2{font-size:14px;font-weight:700;color:var(--gray-900);display:flex;align-items:center;gap:8px}
+.card-body{padding:20px}
+
+/* FORM */
+.fg{display:grid;gap:14px}
+.fg-2{grid-template-columns:1fr 1fr}
+.fg-3{grid-template-columns:1fr 1fr 1fr}
+.fg-4{grid-template-columns:1fr 1fr 1fr 1fr}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.5px}
+.field label .req{color:var(--red)}
+.field input,.field select,.field textarea{
+  padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:7px;
+  font-size:13px;font-family:'DM Sans',sans-serif;color:var(--gray-900);
+  background:var(--white);transition:.15s;outline:none;width:100%;
+}
+.field input:focus,.field select:focus,.field textarea:focus{
+  border-color:var(--purple);box-shadow:0 0 0 3px var(--purple-20);
+}
+.field input.error{border-color:var(--red);box-shadow:0 0 0 3px rgba(239,68,68,.12)}
+.field .err-msg{font-size:11px;color:var(--red);font-weight:500;margin-top:2px;display:none}
+.field.has-error .err-msg{display:block}
+.field textarea{resize:vertical;min-height:80px}
+.field select{
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;
+}
+.pfx{position:relative}
+.pfx input{padding-left:30px}
+.pfx .px{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--gray-400);font-weight:600;pointer-events:none}
+.divider{height:1px;background:var(--gray-100);margin:16px 0}
+.sec-label{
+  font-size:11px;font-weight:800;color:var(--purple);
+  text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;
+  display:flex;align-items:center;gap:8px;
+}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--purple-bg)}
+
+/* STATUS PILLS */
+.status-pills{display:flex;gap:8px;flex-wrap:wrap}
+.sp{
+  padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;
+  cursor:pointer;border:2px solid var(--gray-200);color:var(--gray-500);
+  transition:.15s;background:var(--white);
+}
+.sp:hover{border-color:var(--gray-400)}
+.sp.s-green{border-color:var(--green);background:#d1fae5;color:#065f46}
+.sp.s-yellow{border-color:var(--yellow);background:#fef3c7;color:#92400e}
+.sp.s-red{border-color:var(--red);background:#fee2e2;color:#991b1b}
+.sp.s-gray{border-color:var(--gray-400);background:var(--gray-100);color:var(--gray-600)}
+
+/* CARD COUNTERS */
+.cc-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.cc{
+  background:var(--gray-50);border:1.5px solid var(--gray-200);
+  border-radius:8px;padding:12px;text-align:center;
+}
+.cc .cc-lbl{font-size:10px;font-weight:800;color:var(--gray-400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.cc .cc-ico{font-size:20px;margin-bottom:5px}
+.cc input{
+  width:100%;border:1.5px solid var(--gray-200);border-radius:6px;
+  padding:6px;text-align:center;font-size:18px;font-weight:800;
+  font-family:'DM Mono',monospace;color:var(--gray-900);outline:none;
+  transition:.15s;
+}
+.cc input:focus{border-color:var(--purple);box-shadow:0 0 0 3px var(--purple-20)}
+
+/* SOCIAL */
+.soc-field{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.soc-ico{
+  width:32px;height:32px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;flex-shrink:0;
+}
+.soc-wiki{background:#f3f4f6;color:#374151}
+.soc-ig{background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:white}
+.soc-tw{background:#000;color:white}
+.soc-yt{background:#ff0000;color:white}
+.soc-tm{background:#1a56db;color:white;font-size:10px}
+.soc-ss{background:#e47d10;color:white;font-size:10px}
+.soc-field input{
+  flex:1;padding:7px 11px;border:1.5px solid var(--gray-200);border-radius:7px;
+  font-size:13px;font-family:'DM Sans',sans-serif;color:var(--gray-900);outline:none;transition:.15s;
+}
+.soc-field input:focus{border-color:var(--purple);box-shadow:0 0 0 3px var(--purple-20)}
+
+/* PERF TABLE */
+.ptable{width:100%;border-collapse:collapse;font-size:13px}
+.ptable th{
+  font-size:10px;font-weight:800;color:var(--gray-400);text-transform:uppercase;
+  text-align:center;padding:8px 5px;border-bottom:2px solid var(--gray-100);
+  white-space:nowrap;
+}
+.ptable th:first-child{text-align:left;padding-left:0}
+.ptable td{padding:6px 4px;border-bottom:1px solid var(--gray-50);text-align:center}
+.ptable td:first-child{text-align:left;padding-left:0}
+.ptable tr:last-child td{border-bottom:none}
+.ptable input{
+  border:1.5px solid var(--gray-200);border-radius:6px;
+  padding:5px 6px;font-size:12px;font-family:'DM Sans',sans-serif;
+  color:var(--gray-900);outline:none;transition:.15s;text-align:center;
+}
+.ptable input:focus{border-color:var(--purple);box-shadow:0 0 0 2px var(--purple-20)}
+.ptable .inp-sm{width:48px}
+.ptable .inp-md{width:58px}
+.ptable .inp-lg{width:140px;text-align:left}
+.ptable .inp-yr{width:55px}
+
+/* TRANSFER */
+.tr-hdr{
+  display:grid;grid-template-columns:85px 105px 1fr 1fr 130px 32px;
+  gap:7px;padding-bottom:8px;
+  font-size:10px;font-weight:800;color:var(--gray-400);text-transform:uppercase;
+}
+.tr-row{
+  display:grid;grid-template-columns:85px 105px 1fr 1fr 130px 32px;
+  gap:7px;align-items:center;padding:6px 0;
+  border-bottom:1px solid var(--gray-100);
+}
+.tr-row:last-child{border-bottom:none}
+.tr-row input{
+  padding:6px 8px;border:1.5px solid var(--gray-200);border-radius:6px;
+  font-size:12px;font-family:'DM Sans',sans-serif;color:var(--gray-900);
+  width:100%;outline:none;transition:.15s;
+}
+.tr-row input:focus{border-color:var(--purple);box-shadow:0 0 0 2px var(--purple-20)}
+
+/* BUTTONS */
+.btn{
+  padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;
+  font-family:'DM Sans',sans-serif;cursor:pointer;border:none;
+  transition:.15s;display:inline-flex;align-items:center;gap:6px;
+}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:7px}
+.btn-primary{background:var(--purple);color:white}
+.btn-primary:hover{background:var(--purple-d);box-shadow:0 4px 14px rgba(108,43,217,.35)}
+.btn-secondary{background:var(--white);color:var(--gray-700);border:1.5px solid var(--gray-200)}
+.btn-secondary:hover{background:var(--gray-50)}
+.btn-danger{background:var(--white);color:var(--red);border:1.5px solid #fecaca}
+.btn-danger:hover{background:#fff1f2}
+.btn-ghost{background:none;border:none;cursor:pointer;color:var(--gray-400);padding:4px;border-radius:5px;transition:.15s;display:flex;align-items:center;justify-content:center}
+.btn-ghost:hover{color:var(--red);background:#fee2e2}
+.btn-add{
+  display:flex;align-items:center;gap:6px;font-size:12px;
+  font-weight:700;color:var(--purple);cursor:pointer;padding:8px 0;
+  margin-top:6px;background:none;border:none;font-family:'DM Sans',sans-serif;
+  transition:.15s;
+}
+.btn-add:hover{color:var(--purple-d)}
+
+/* SAVE BAR */
+.save-bar{
+  position:sticky;bottom:0;background:var(--white);
+  border-top:1px solid var(--gray-200);padding:13px 24px;
+  display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 -4px 14px rgba(0,0,0,.07);z-index:90;
+}
+.save-hint{font-size:12px;color:var(--gray-400)}
+.save-hint b{color:var(--purple)}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:80px;right:24px;
+  background:var(--gray-900);color:white;
+  padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;
+  display:flex;align-items:center;gap:10px;
+  transform:translateY(16px);opacity:0;transition:.3s ease;z-index:300;
+  box-shadow:var(--sh-md);
+}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* CHARTS */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.chart-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);padding:16px;box-shadow:var(--sh)}
+.chart-card h3{font-size:13px;font-weight:700;color:var(--gray-700);margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.chart-wrap{position:relative;height:220px}
+.chart-wrap-tall{position:relative;height:280px}
+.stats-summary{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;
+}
+.stat-chip{
+  background:var(--white);border:1px solid var(--gray-200);
+  border-radius:var(--radius);padding:14px 12px;text-align:center;
+  box-shadow:var(--sh);
+}
+.stat-chip .sc-val{font-size:24px;font-weight:800;color:var(--purple);font-family:'DM Mono',monospace}
+.stat-chip .sc-lbl{font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+
+/* RADAR */
+.radar-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+
+/* EMPTY STATE */
+.empty-charts{
+  text-align:center;padding:48px 24px;color:var(--gray-400);
+}
+.empty-charts .ec-ico{font-size:40px;margin-bottom:12px}
+.empty-charts p{font-size:14px;font-weight:500}
+.empty-charts small{font-size:12px}
+
+/* REQUIRED asterisk helper */
+.req-note{font-size:11px;color:var(--gray-400);margin-bottom:12px}
+.req-note span{color:var(--red)}
+
+/* PROGRESS BAR for overall ratings */
+.rating-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.rating-label{font-size:12px;color:var(--gray-600);width:120px;flex-shrink:0}
+.rating-bar-bg{flex:1;height:6px;background:var(--gray-200);border-radius:3px;overflow:hidden}
+.rating-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--purple),var(--purple-h));transition:.3s}
+.rating-val{font-size:12px;font-weight:700;color:var(--purple);width:24px;text-align:right;font-family:'DM Mono',monospace}
+
+@media(max-width:900px){.main{grid-template-columns:1fr}.photo-sticky-wrap{position:relative;top:auto}.charts-grid{grid-template-columns:1fr}.radar-wrap{grid-template-columns:1fr}.stats-summary{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<!-- MODE BANNER -->
+<div class="mode-banner" id="modeBanner">
+  <span class="mode-icon" id="modeIcon">✨</span>
+  <span id="modeText">Modo Criação — Preencha os dados do novo atleta</span>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="club-brand">
+      <div class="club-logo club-logo-upload" id="clubLogoWrap" title="Clique para alterar logo do clube">
+        <span id="clubLogoText">CF</span>
+        <input type="file" id="clubLogoInput" accept="image/*" onchange="previewClubLogo(this)">
+      </div>
+      <div class="logo-text">{{ club_display_name }}</div>
+    </div>
+    <div class="divider-v"></div>
+    <button class="back-btn" type="button" onclick="window.location.href='{{ url_for('atletas') }}'">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      Voltar
+    </button>
+  </div>
+  <div style="display:flex;gap:8px">
+    <a class="btn btn-secondary btn-sm" href="{{ url_for('baixar_relatorio_atleta_pdf', id=atleta.id) }}">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+      Relatório PDF
+    </a>
+    <button class="btn btn-danger btn-sm" id="deleteBtn" onclick="confirmDelete()" style="display:none">🗑 Excluir</button>
+  </div>
+</div>
+
+<form id="atletaEditForm" method="POST" action="{{ url_for('editar_atleta', id=atleta.id) }}" enctype="multipart/form-data">
+<input type="hidden" id="desempenho_competicoes" name="desempenho_competicoes">
+<input type="hidden" id="transferencias" name="transferencias">
+<input type="hidden" id="redes_sociais" name="redes_sociais">
+
+<!-- ATHLETE HEADER -->
+<div class="ath-header">
+  <div class="ath-meta">
+    <!-- mini avatar in header -->
+    <div style="width:68px;height:68px;border-radius:50%;overflow:hidden;border:2.5px solid var(--gray-200);flex-shrink:0;background:var(--purple-bg);display:flex;align-items:center;justify-content:center" id="headerAvatarWrap">
+      <span style="font-size:24px;font-weight:800;color:var(--purple)" id="headerAvatarInitials">?</span>
+    </div>
+    <div>
+      <h1 style="font-size:25px;font-weight:800;color:var(--gray-900)" id="headerName">Novo Atleta</h1>
+      <div style="font-size:13px;color:var(--gray-400);display:flex;align-items:center;gap:7px;margin-top:2px">
+        <span id="headerFlag">🌍</span>
+        <span id="headerAge">—</span>
+        <span>·</span>
+        <span id="headerPos">—</span>
+        <span>·</span>
+        <span class="photo-badge bg-green" id="headerStatus">● Ativo</span>
+      </div>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="goTab('dados',this)">Dados Pessoais</div>
+    <div class="tab" onclick="goTab('contrato',this)">Contrato & Clube</div>
+    <div class="tab" onclick="goTab('desempenho',this)">Desempenho</div>
+    <div class="tab" onclick="goTab('transferencias',this)">Transferências</div>
+    <div class="tab" onclick="goTab('redes',this)">Redes Sociais</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT: STICKY PHOTO -->
+  <div class="photo-sticky-wrap">
+    <div class="photo-block">
+      <label for="fotoInput" style="cursor:pointer">
+        <div class="avatar-ring" id="avatarRing" onclick="openPhotoPicker(event)">
+          <span class="avatar-initials" id="avatarInitials">?</span>
+          <div class="avatar-overlay">
+            <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span>Alterar foto</span>
+          </div>
+        </div>
+      </label>
+      <input type="file" id="fotoInput" name="foto" accept="image/png,image/jpeg,image/gif,image/webp" class="file-input-hidden" onchange="previewPhoto(this)">
+      <div class="photo-name" id="photoName">Novo Atleta</div>
+      <div class="photo-sub" id="photoSub">—</div>
+      <span class="photo-badge bg-green" id="photoBadge">● Ativo</span>
+    </div>
+  </div>
+
+  <!-- RIGHT: TAB PANELS -->
+  <div>
+
+    <!-- ══════ TAB: DADOS ══════ -->
+    <div class="tab-panel active" id="panel-dados">
+      <div class="req-note"><span>*</span> Campos obrigatórios</div>
+
+      <div class="card">
+        <div class="card-header"><h2>👤 Identificação</h2></div>
+        <div class="card-body">
+          <div class="fg">
+            <div class="field" id="f-nome">
+              <label>Nome Completo <span class="req">*</span></label>
+              <input type="text" id="nomeCompleto" name="nome" value="{{ atleta.nome or '' }}" placeholder="Ex: Miguel Pereira Ribeiro" oninput="liveUpdate()">
+              <span class="err-msg">Nome é obrigatório</span>
+            </div>
+            <div class="fg fg-2">
+              <div class="field" id="f-nasc">
+                <label>Data de Nascimento <span class="req">*</span></label>
+                <input type="date" id="dataNasc" name="data_nascimento" value="{{ atleta.data_nascimento.strftime('%Y-%m-%d') if atleta.data_nascimento else '' }}" oninput="liveUpdate()">
+                <span class="err-msg">Data obrigatória</span>
+              </div>
+              <div class="field">
+                <label>Nacionalidade</label>
+                <select id="nacionalidade" onchange="liveUpdate()">
+                  <option value="">Selecionar…</option>
+                  <option value="🇧🇷 Brasil" selected>🇧🇷 Brasil</option>
+                  <option value="🇵🇹 Portugal">🇵🇹 Portugal</option>
+                  <option value="🇦🇷 Argentina">🇦🇷 Argentina</option>
+                  <option value="🇪🇸 Espanha">🇪🇸 Espanha</option>
+                  <option value="🇫🇷 França">🇫🇷 França</option>
+                  <option value="🇩🇪 Alemanha">🇩🇪 Alemanha</option>
+                  <option value="🇮🇹 Itália">🇮🇹 Itália</option>
+                  <option value="🌍 Outro">🌍 Outro</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2>💪 Físico</h2></div>
+        <div class="card-body">
+          <div class="fg fg-2">
+            <div class="field">
+              <label>Altura (cm)</label>
+              <input type="number" id="altura" name="altura" value="{{ atleta.altura if atleta.altura is not none else '' }}" placeholder="181" min="140" max="220">
+            </div>
+            <div class="field">
+              <label>Peso (kg)</label>
+              <input type="number" id="peso" name="peso" value="{{ atleta.peso if atleta.peso is not none else '' }}" placeholder="72" min="40" max="150">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2>⚽ Perfil de Jogo</h2></div>
+        <div class="card-body">
+          <div class="fg fg-2">
+            <div class="field" id="f-pos">
+              <label>Posição <span class="req">*</span></label>
+              <select id="posicao" name="posicao" onchange="liveUpdate()">
+                <option value="">Selecionar…</option>
+                <option {{ 'selected' if atleta.posicao == 'Atacante' else '' }}>Atacante</option><option {{ 'selected' if atleta.posicao == 'Ponta Direita' else '' }}>Ponta Direita</option>
+                <option {{ 'selected' if atleta.posicao == 'Ponta Esquerda' else '' }}>Ponta Esquerda</option><option {{ 'selected' if atleta.posicao == 'Meia-Atacante' else '' }}>Meia-Atacante</option>
+                <option {{ 'selected' if atleta.posicao == 'Meia' else '' }}>Meia</option><option {{ 'selected' if atleta.posicao == 'Volante' else '' }}>Volante</option>
+                <option {{ 'selected' if atleta.posicao == 'Lateral Direito' else '' }}>Lateral Direito</option><option {{ 'selected' if atleta.posicao == 'Lateral Esquerdo' else '' }}>Lateral Esquerdo</option>
+                <option {{ 'selected' if atleta.posicao == 'Zagueiro' else '' }}>Zagueiro</option><option {{ 'selected' if atleta.posicao == 'Goleiro' else '' }}>Goleiro</option>
+              </select>
+              <span class="err-msg">Posição obrigatória</span>
+            </div>
+            <div class="field">
+              <label>Pé Preferencial</label>
+              <select id="pePref">
+                <option>Direito</option><option>Esquerdo</option><option>Ambidestro</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Nº da Camisa</label>
+              <input type="number" id="numeroCamisa" name="numero" value="{{ atleta.numero or '' }}" placeholder="9" min="1" max="99">
+            </div>
+            <div class="field">
+              <label>Categoria</label>
+              <select id="categoria" name="categoria">
+                <option {{ 'selected' if atleta.categoria == 'Sub-13' else '' }}>Sub-13</option><option {{ 'selected' if atleta.categoria == 'Sub-15' else '' }}>Sub-15</option>
+                <option {{ 'selected' if atleta.categoria == 'Sub-17' else '' }}>Sub-17</option><option {{ 'selected' if atleta.categoria == 'Sub-20' else '' }}>Sub-20</option>
+                <option {{ 'selected' if atleta.categoria == 'Profissional' else '' }}>Profissional</option>
+                <option {{ 'selected' if atleta.categoria == 'Principal' else '' }}>Principal</option><option {{ 'selected' if atleta.categoria == 'Reservas' else '' }}>Reservas</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2>📈 Carreira</h2></div>
+        <div class="card-body">
+          <div class="fg fg-2">
+            <div class="field">
+              <label>Gols na Carreira</label>
+              <input type="number" id="golsCarreira" placeholder="0" min="0" oninput="updateCharts()">
+            </div>
+            <div class="field">
+              <label>Jogos na Carreira</label>
+              <input type="number" id="jogosCarreira" placeholder="0" min="0" oninput="updateCharts()">
+            </div>
+            <div class="field">
+              <label>Assistências na Carreira</label>
+              <input type="number" id="assistCarreira" placeholder="0" min="0" oninput="updateCharts()">
+            </div>
+            <div class="field">
+              <label>Minutos na Carreira</label>
+              <input type="number" id="minutosCarreira" placeholder="0" min="0">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2>🔘 Status do Atleta</h2></div>
+        <div class="card-body">
+          <div class="status-pills">
+            <div class="sp s-green" onclick="setStatus('ativo',this)">● Ativo</div>
+            <div class="sp" onclick="setStatus('lesionado',this)">🤕 Lesionado</div>
+            <div class="sp" onclick="setStatus('suspenso',this)">🚫 Suspenso</div>
+            <div class="sp" onclick="setStatus('inativo',this)">⏸ Inativo</div>
+          </div>
+          <input type="hidden" id="statusAtleta" name="status" value="{{ atleta.status or 'ativo' }}">
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2>🟨 Cartões & Suspensões</h2></div>
+        <div class="card-body">
+          <div class="cc-grid">
+            <div class="cc">
+              <div class="cc-lbl">Amarelos</div>
+              <div class="cc-ico">🟨</div>
+              <input type="number" id="cartoesAmarelos" name="cartoes_amarelos" value="{{ atleta.cartoes_amarelos or 0 }}" min="0" oninput="updateCharts()">
+            </div>
+            <div class="cc">
+              <div class="cc-lbl">Vermelhos</div>
+              <div class="cc-ico">🟥</div>
+              <input type="number" id="cartoesVermelhos" name="cartoes_vermelhos" value="{{ atleta.cartoes_vermelhos or 0 }}" min="0" oninput="syncSuspensionFromCardInputs(); updateCharts()">
+            </div>
+            <div class="cc">
+              <div class="cc-lbl">Suspensões</div>
+              <div class="cc-ico">⛔</div>
+              <input type="number" id="suspensoes" name="jogos_suspensao" value="{{ atleta.jogos_suspensao or 0 }}" min="0" oninput="updateCharts()">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2>📞 Contato Pessoal</h2></div>
+        <div class="card-body">
+          <div class="fg">
+            <div class="fg fg-2">
+              <div class="field">
+                <label>Telefone</label>
+                <input type="tel" id="telefone" name="telefone" value="{{ atleta.telefone or '' }}" placeholder="+55 (11) 99999-9999">
+              </div>
+              <div class="field">
+                <label>E-mail</label>
+                <input type="email" id="email" name="email" value="{{ atleta.email or '' }}" placeholder="atleta@email.com">
+              </div>
+            </div>
+            <div class="field">
+              <label>Endereço</label>
+              <input type="text" id="endereco" name="endereco" value="{{ atleta.endereco or '' }}" placeholder="Rua, Número, Bairro, Cidade">
+            </div>
+            <div class="field">
+              <label>IBAN / Conta Bancária</label>
+              <input type="text" id="iban" name="iban" value="{{ atleta.iban or '' }}" placeholder="PT50 0000 0000 0000 0000 0000 0">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ TAB: CONTRATO ══════ -->
+    <div class="tab-panel" id="panel-contrato">
+      <div class="card">
+        <div class="card-header"><h2>🏟 Clube Atual</h2></div>
+        <div class="card-body">
+          <div class="fg fg-2">
+            <div class="field">
+              <label>Nome do Clube <span class="req">*</span></label>
+              <input type="text" id="clubeAtual" placeholder="Ex: Footure FC">
+            </div>
+            <div class="field">
+              <label>Valor de Mercado (M€)</label>
+              <div class="pfx">
+                <span class="px">€</span>
+                <input type="number" id="valorMercado" placeholder="0.00" step="0.1" min="0">
+              </div>
+            </div>
+            <div class="field">
+              <label>Início do Contrato</label>
+              <input type="date" id="contratoInicio" name="contrato_inicio" value="{{ atleta.contrato_inicio.strftime('%Y-%m-%d') if atleta.contrato_inicio else '' }}">
+            </div>
+            <div class="field">
+              <label>Fim do Contrato <span class="req">*</span></label>
+              <input type="date" id="contratoFim" name="contrato_fim" value="{{ atleta.contrato_fim.strftime('%Y-%m-%d') if atleta.contrato_fim else '' }}">
+            </div>
+            <div class="field">
+              <label>Salário Mensal (€)</label>
+              <div class="pfx">
+                <span class="px">€</span>
+                <input type="number" id="salario" name="salario" value="{{ atleta.salario if atleta.salario is not none else 0 }}" placeholder="0" step="100" min="0">
+              </div>
+            </div>
+            <div class="field">
+              <label>Prémios / Bónus (€)</label>
+              <div class="pfx">
+                <span class="px">€</span>
+                <input type="number" id="premios" name="premios" value="{{ atleta.premios if atleta.premios is not none else 0 }}" placeholder="0" step="100" min="0">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2>🤝 Agente</h2></div>
+        <div class="card-body">
+          <div class="fg fg-2">
+            <div class="field">
+              <label>Nome do Agente</label>
+              <input type="text" id="nomeAgente" placeholder="Ex: Footure Agency">
+            </div>
+            <div class="field">
+              <label>Contato do Agente</label>
+              <input type="tel" id="telAgente" placeholder="+351 912 345 678">
+            </div>
+            <div class="field">
+              <label>E-mail do Agente</label>
+              <input type="email" id="emailAgente" placeholder="agente@email.com">
+            </div>
+            <div class="field">
+              <label>Agência</label>
+              <input type="text" id="agencia" placeholder="Nome da agência">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ TAB: DESEMPENHO ══════ -->
+    <div class="tab-panel" id="panel-desempenho">
+
+      <!-- SUMMARY CHIPS -->
+      <div class="stats-summary" id="statsChips">
+        <div class="stat-chip"><div class="sc-val" id="sc-gols">0</div><div class="sc-lbl">⚽ Gols</div></div>
+        <div class="stat-chip"><div class="sc-val" id="sc-assist">0</div><div class="sc-lbl">🅰 Assistências</div></div>
+        <div class="stat-chip"><div class="sc-val" id="sc-jogos">0</div><div class="sc-lbl">🟩 Jogos</div></div>
+        <div class="stat-chip"><div class="sc-val" id="sc-min">0'</div><div class="sc-lbl">⏱ Minutos</div></div>
+      </div>
+
+      <!-- CHARTS ROW 1 -->
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3>⚽ Gols & Assistências por Temporada</h3>
+          <div class="chart-wrap"><canvas id="chartGA"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>🟩 Jogos & Minutos</h3>
+          <div class="chart-wrap"><canvas id="chartJM"></canvas></div>
+        </div>
+      </div>
+
+      <!-- CHARTS ROW 2 -->
+      <div class="radar-wrap">
+        <div class="chart-card">
+          <h3>🎯 Radar de Desempenho Técnico</h3>
+          <div class="chart-wrap"><canvas id="chartRadar"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>🟨 Disciplina</h3>
+          <div class="chart-wrap-tall" style="height:220px"><canvas id="chartDisc"></canvas></div>
+          <div id="ratingBars" style="margin-top:14px"></div>
+        </div>
+      </div>
+
+      <!-- PERF TABLE -->
+      <div class="card">
+        <div class="card-header">
+          <h2>📋 Desempenho nas Competições</h2>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="addPerfRow()">+ Linha</button>
+        </div>
+        <div class="card-body" style="overflow-x:auto">
+          <table class="ptable">
+            <thead>
+              <tr>
+                <th style="text-align:left">Temporada</th>
+                <th style="text-align:left">Competição</th>
+                <th title="Minutos">⏱</th>
+                <th title="Jogos">🟩</th>
+                <th title="Titular">👕</th>
+                <th title="Substituições">🔄</th>
+                <th title="Gols">⚽</th>
+                <th title="Assistências">🅰</th>
+                <th title="Amarelos">🟨</th>
+                <th title="Vermelhos">🟥</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="perfBody"></tbody>
+          </table>
+          <button type="button" class="btn-add" onclick="addPerfRow()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Adicionar competição
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2>📝 Adicionar Estatística de Jogo</h2></div>
+        <div class="card-body">
+          <div class="fg fg-3">
+            <div class="field">
+              <label>Data do Jogo *</label>
+              <input type="date" id="jogoData" required>
+            </div>
+            <div class="field">
+              <label>Temporada *</label>
+              <input type="text" id="jogoTemporada" placeholder="2026/2027" value="{{ now().year }}/{{ now().year + 1 }}" required>
+            </div>
+            <div class="field">
+              <label>Adversário</label>
+              <input type="text" id="jogoAdversario" placeholder="Ex: SL Benfica">
+            </div>
+            <div class="field"><label>Minutos Jogados</label><input type="number" id="jogoMinutos" value="0" min="0" max="120" oninput="updateGameRadar()"></div>
+            <div class="field"><label>Gols</label><input type="number" id="jogoGols" value="0" min="0" oninput="updateGameRadar()"></div>
+            <div class="field"><label>Assistências</label><input type="number" id="jogoAssistencias" value="0" min="0" oninput="updateGameRadar()"></div>
+            <div class="field"><label>Finalizações</label><input type="number" id="jogoFinalizacoes" value="0" min="0" oninput="updateGameRadar()"></div>
+            <div class="field"><label>Passes Certos</label><input type="number" id="jogoPassesCertos" value="0" min="0" oninput="updateGameRadar()"></div>
+            <div class="field"><label>Passes Errados</label><input type="number" id="jogoPassesErrados" value="0" min="0" oninput="updateGameRadar()"></div>
+            <div class="field"><label>Desarmes</label><input type="number" id="jogoDesarmes" value="0" min="0" oninput="updateGameRadar()"></div>
+            <div class="field"><label>Faltas Cometidas</label><input type="number" id="jogoFaltasCometidas" value="0" min="0" oninput="updateGameRadar()"></div>
+            <div class="field"><label>Faltas Sofridas</label><input type="number" id="jogoFaltasSofridas" value="0" min="0" oninput="updateGameRadar()"></div>
+            <div class="field"><label>Cartões Amarelos</label><input type="number" id="jogoAmarelos" value="0" min="0" max="2" oninput="updateGameRadar()"></div>
+            <div class="field"><label>Cartões Vermelhos</label><input type="number" id="jogoVermelhos" value="0" min="0" max="1" oninput="updateGameRadar()"></div>
+            <div class="field"><label>Suspensão por Vermelho (jogos)</label><input type="number" id="jogoSuspensaoVermelho" value="1" min="1"></div>
+            <div class="field"><label>Nota do Jogo (0-10)</label><input type="number" id="jogoNota" value="0" min="0" max="10" step="0.5" oninput="updateGameRadar()"></div>
+          </div>
+          <div style="margin-top:14px;display:flex;justify-content:flex-end;">
+            <button type="button" class="btn btn-primary" onclick="addJogoDetalhado()">Adicionar ao Desempenho</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2>📡 Radar de Estatísticas do Jogo</h2></div>
+        <div class="card-body">
+          <div class="chart-wrap"><canvas id="chartGameRadar"></canvas></div>
+        </div>
+      </div>
+
+      <!-- AVALIAÇÕES TÉCNICAS -->
+      <div class="card">
+        <div class="card-header"><h2>🎯 Avaliações Técnicas (1–5)</h2></div>
+        <div class="card-body">
+          <div class="fg fg-2">
+            <div>
+              <div class="sec-label">Técnica</div>
+              <div class="rating-row"><span class="rating-label">First Touch</span><div class="rating-bar-bg"><div class="rating-bar-fill" id="bar-ft" style="width:60%"></div></div><span class="rating-val" id="val-ft">3</span></div>
+              <div class="field" style="margin-bottom:10px"><input type="range" id="rng-ft" min="1" max="5" step="1" value="3" oninput="updateRating('ft',this.value)" style="width:100%;accent-color:var(--purple)"></div>
+              <div class="rating-row"><span class="rating-label">Passing</span><div class="rating-bar-bg"><div class="rating-bar-fill" id="bar-pa" style="width:60%"></div></div><span class="rating-val" id="val-pa">3</span></div>
+              <div class="field" style="margin-bottom:10px"><input type="range" id="rng-pa" min="1" max="5" step="1" value="3" oninput="updateRating('pa',this.value)" style="width:100%;accent-color:var(--purple)"></div>
+              <div class="rating-row"><span class="rating-label">Dribbling</span><div class="rating-bar-bg"><div class="rating-bar-fill" id="bar-dr" style="width:60%"></div></div><span class="rating-val" id="val-dr">3</span></div>
+              <div class="field" style="margin-bottom:10px"><input type="range" id="rng-dr" min="1" max="5" step="1" value="3" oninput="updateRating('dr',this.value)" style="width:100%;accent-color:var(--purple)"></div>
+              <div class="rating-row"><span class="rating-label">Shooting</span><div class="rating-bar-bg"><div class="rating-bar-fill" id="bar-sh" style="width:60%"></div></div><span class="rating-val" id="val-sh">3</span></div>
+              <div class="field"><input type="range" id="rng-sh" min="1" max="5" step="1" value="3" oninput="updateRating('sh',this.value)" style="width:100%;accent-color:var(--purple)"></div>
+            </div>
+            <div>
+              <div class="sec-label">Física & Mental</div>
+              <div class="rating-row"><span class="rating-label">Acceleration</span><div class="rating-bar-bg"><div class="rating-bar-fill" id="bar-ac" style="width:60%"></div></div><span class="rating-val" id="val-ac">3</span></div>
+              <div class="field" style="margin-bottom:10px"><input type="range" id="rng-ac" min="1" max="5" step="1" value="3" oninput="updateRating('ac',this.value)" style="width:100%;accent-color:var(--purple)"></div>
+              <div class="rating-row"><span class="rating-label">Stamina</span><div class="rating-bar-bg"><div class="rating-bar-fill" id="bar-st" style="width:60%"></div></div><span class="rating-val" id="val-st">3</span></div>
+              <div class="field" style="margin-bottom:10px"><input type="range" id="rng-st" min="1" max="5" step="1" value="3" oninput="updateRating('st',this.value)" style="width:100%;accent-color:var(--purple)"></div>
+              <div class="rating-row"><span class="rating-label">Leadership</span><div class="rating-bar-bg"><div class="rating-bar-fill" id="bar-ld" style="width:60%"></div></div><span class="rating-val" id="val-ld">3</span></div>
+              <div class="field" style="margin-bottom:10px"><input type="range" id="rng-ld" min="1" max="5" step="1" value="3" oninput="updateRating('ld',this.value)" style="width:100%;accent-color:var(--purple)"></div>
+              <div class="rating-row"><span class="rating-label">Confidence</span><div class="rating-bar-bg"><div class="rating-bar-fill" id="bar-co" style="width:60%"></div></div><span class="rating-val" id="val-co">3</span></div>
+              <div class="field"><input type="range" id="rng-co" min="1" max="5" step="1" value="3" oninput="updateRating('co',this.value)" style="width:100%;accent-color:var(--purple)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ TAB: TRANSFERÊNCIAS ══════ -->
+    <div class="tab-panel" id="panel-transferencias">
+      <div class="card">
+        <div class="card-header">
+          <h2>🔄 Histórico de Transferências</h2>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="addTransfer()">+ Adicionar</button>
+        </div>
+        <div class="card-body">
+          <div class="tr-hdr">
+            <span>Temporada</span><span>Data</span><span>De</span><span>Para</span><span>Valor</span><span></span>
+          </div>
+          <div id="transferList"></div>
+          <button type="button" class="btn-add" onclick="addTransfer()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Adicionar transferência
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ TAB: REDES SOCIAIS ══════ -->
+    <div class="tab-panel" id="panel-redes">
+      <div class="card">
+        <div class="card-header"><h2>🌐 Redes Sociais</h2></div>
+        <div class="card-body">
+          <div class="soc-field"><div class="soc-ico soc-wiki">W</div><input type="url" id="linkWiki" placeholder="https://pt.wikipedia.org/wiki/..."></div>
+          <div class="soc-field"><div class="soc-ico soc-ig">📷</div><input type="text" id="linkIG" placeholder="@usuario no Instagram"></div>
+          <div class="soc-field"><div class="soc-ico soc-tw">𝕏</div><input type="text" id="linkTW" placeholder="@usuario no X (Twitter)"></div>
+          <div class="soc-field"><div class="soc-ico soc-yt">▶</div><input type="url" id="linkYT" placeholder="https://youtube.com/@canal"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h2>🔗 Links Profissionais</h2></div>
+        <div class="card-body">
+          <div class="soc-field"><div class="soc-ico soc-tm" style="font-size:9px;font-weight:800">TM</div><input type="url" id="linkTM" placeholder="https://www.transfermarkt.com.br/..."></div>
+          <div class="soc-field"><div class="soc-ico soc-ss" style="font-size:9px;font-weight:800">SS</div><input type="url" id="linkSS" placeholder="https://www.sofascore.com/pt/..."></div>
+          <div class="field" style="margin-top:10px">
+            <label>Vídeo / Highlights</label>
+            <input type="url" id="linkVideo" placeholder="https://youtube.com/...">
+          </div>
+          <div class="field" style="margin-top:10px">
+            <label>Observações</label>
+            <textarea id="obsGeral" placeholder="Notas adicionais sobre o atleta…"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end right col -->
+</div><!-- end main -->
+</form>
+
+<!-- SAVE BAR -->
+<div class="save-bar">
+  <div class="save-hint" id="saveHint">Preencha os campos obrigatórios (<b>*</b>) para salvar</div>
+  <div style="display:flex;gap:8px">
+    <button type="button" class="btn btn-secondary" onclick="window.location.href='{{ url_for('atletas') }}'">Cancelar</button>
+    <button type="button" class="btn btn-primary" onclick="saveForm()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      <span id="saveBtnTxt">Criar Atleta</span>
+    </button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span id="toastIcon">✅</span>
+  <span id="toastMsg">Salvo com sucesso!</span>
+</div>
+
+<script>
+// ─── MODE ───
+const isEdit = true;
+let currentStatus = 'ativo';
+let photoDataURL = null;
+const desempenhoInicial = {{ (desempenho_competicoes or []) | tojson }};
+const transferenciasIniciais = {{ (transferencias or []) | tojson }};
+const redesSociaisIniciais = {{ (redes_sociais or {}) | tojson }};
+
+function initMode() {
+  document.getElementById('modeBanner').style.background = 'linear-gradient(90deg,#065f46,#10b981)';
+  document.getElementById('modeIcon').textContent = '✏️';
+  document.getElementById('modeText').textContent = 'Modo Edição — Todos os campos podem ser alterados';
+  document.getElementById('saveBtnTxt').textContent = 'Guardar Alterações';
+  document.getElementById('saveHint').innerHTML = 'Edite os dados e clique em <b>Guardar Alterações</b>';
+  document.getElementById('deleteBtn').style.display = '';
+  document.title = 'Editar Atleta — {{ club_display_name }}';
+  document.getElementById('pageTitle').textContent = 'Editar Atleta — {{ club_display_name }}';
+}
+
+// ─── LIVE HEADER UPDATE ───
+const flagMap = {'🇧🇷 Brasil':'🇧🇷','🇵🇹 Portugal':'🇵🇹','🇦🇷 Argentina':'🇦🇷','🇪🇸 Espanha':'🇪🇸','🇫🇷 França':'🇫🇷','🇩🇪 Alemanha':'🇩🇪','🇮🇹 Itália':'🇮🇹','🌍 Outro':'🌍'};
+function liveUpdate() {
+  const nome = document.getElementById('nomeCompleto').value.trim() || 'Novo Atleta';
+  const pos  = document.getElementById('posicao').value || '—';
+  const nasc = document.getElementById('dataNasc').value;
+  const nat  = document.getElementById('nacionalidade').value;
+  // header
+  document.getElementById('headerName').textContent = nome;
+  document.getElementById('headerPos').textContent  = pos;
+  document.getElementById('headerFlag').textContent = flagMap[nat] || '🌍';
+  // age
+  if (nasc) {
+    const age = Math.floor((new Date() - new Date(nasc)) / (365.25*24*3600*1000));
+    document.getElementById('headerAge').textContent = age + ' anos';
+  }
+  // photo panel
+  document.getElementById('photoName').textContent = nome;
+  document.getElementById('photoSub').textContent  = pos !== '—' ? pos : '—';
+  // initials
+  const parts = nome.split(' ');
+  const init  = parts.length >= 2 ? parts[0][0]+parts[parts.length-1][0] : nome[0]||'?';
+  document.getElementById('avatarInitials').textContent  = init.toUpperCase();
+  document.getElementById('headerAvatarInitials').textContent = init.toUpperCase();
+  // save hint
+  if (!isEdit) {
+    const filled = document.getElementById('nomeCompleto').value && document.getElementById('posicao').value && document.getElementById('dataNasc').value;
+    document.getElementById('saveHint').innerHTML = filled ? 'Pronto para criar o atleta ✓' : 'Preencha os campos obrigatórios (<b>*</b>) para salvar';
+  }
+}
+
+// ─── STATUS ───
+const statusCfg = {
+  ativo:    {cls:'s-green', badge:'bg-green',  txt:'● Ativo'},
+  lesionado:{cls:'s-yellow',badge:'bg-yellow', txt:'🤕 Lesionado'},
+  suspenso: {cls:'s-red',   badge:'bg-red',    txt:'🚫 Suspenso'},
+  inativo:  {cls:'s-gray',  badge:'bg-gray',   txt:'⏸ Inativo'},
+};
+function setStatus(key, el) {
+  currentStatus = key;
+  document.querySelectorAll('.sp').forEach(p => p.className = 'sp');
+  if (el) el.classList.add(statusCfg[key].cls);
+  const txt   = statusCfg[key].txt;
+  const badge = statusCfg[key].badge;
+  ['headerStatus','photoBadge'].forEach(id => {
+    const el2 = document.getElementById(id);
+    el2.textContent = txt;
+    el2.className   = (id === 'photoBadge' ? 'photo-badge ' : 'photo-badge ') + badge;
+  });
+}
+
+// ─── PHOTO PREVIEW ───
+function openPhotoPicker(event) {
+  event.preventDefault();
+  document.getElementById('fotoInput').click();
+}
+
+function previewPhoto(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    photoDataURL = e.target.result;
+    const ring = document.getElementById('avatarRing');
+    ring.innerHTML = `<img src="${e.target.result}" alt="foto"><div class="avatar-overlay"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Alterar foto</span></div>`;
+    // header mini
+    const hw = document.getElementById('headerAvatarWrap');
+    hw.innerHTML = `<img src="${e.target.result}" style="width:68px;height:68px;object-fit:cover;border-radius:50%">`;
+  };
+  reader.readAsDataURL(file);
+  uploadPhotoNow(file);
+}
+
+async function uploadPhotoNow(file) {
+  const data = new FormData();
+  data.append('foto', file);
+
+  try {
+    const resp = await fetch("{{ url_for('editar_foto_atleta', id=atleta.id) }}", {
+      method: 'POST',
+      body: data
+    });
+    const result = await resp.json();
+    if (!resp.ok || !result.ok) {
+      showToast('⚠️', result.error || 'Não foi possível alterar a foto.');
+      return;
+    }
+
+    const freshUrl = result.foto_url;
+    document.querySelectorAll(`img[src*="/uploads/atletas/"]`).forEach(img => {
+      img.src = freshUrl;
+    });
+    document.getElementById('fotoInput').value = '';
+    showToast('✅', 'Foto alterada com sucesso.');
+  } catch (err) {
+    showToast('⚠️', 'Erro ao enviar a foto.');
+  }
+}
+
+// ─── CLUB LOGO ───
+function previewClubLogo(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      localStorage.setItem('cityfc_club_logo', e.target.result);
+    } catch (_) {}
+    const wrap = document.getElementById('clubLogoWrap');
+    wrap.innerHTML = `<img src="${e.target.result}" style="width:43px;height:43px;border-radius:50%;object-fit:cover"><input type="file" accept="image/*" onchange="previewClubLogo(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function loadFixedClubLogo() {
+  let saved = null;
+  try {
+    saved = localStorage.getItem('cityfc_club_logo');
+  } catch (_) {}
+  if (!saved) return;
+  const wrap = document.getElementById('clubLogoWrap');
+  wrap.innerHTML = `<img src="${saved}" style="width:43px;height:43px;border-radius:50%;object-fit:cover"><input type="file" accept="image/*" onchange="previewClubLogo(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">`;
+}
+
+// ─── TABS ───
+function goTab(id, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('panel-'+id).classList.add('active');
+  if (id === 'desempenho') setTimeout(updateCharts, 100);
+}
+
+// ─── RATINGS ───
+function updateRating(key, val) {
+  document.getElementById('val-'+key).textContent = val;
+  document.getElementById('bar-'+key).style.width = ((val/5)*100)+'%';
+  if (key==='ft'||key==='pa'||key==='dr'||key==='sh'||key==='ac'||key==='st'||key==='ld'||key==='co') updateCharts();
+}
+
+// ─── PERF TABLE ───
+function mkDelBtn(fn) {
+  const b = document.createElement('button');
+  b.className = 'btn-ghost';
+  b.title = 'Remover';
+  b.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>`;
+  b.onclick = fn;
+  return b;
+}
+function setRowMeta(td, meta) {
+  Object.entries(meta).forEach(([key, value]) => {
+    const hidden = document.createElement('input');
+    hidden.type = 'hidden';
+    hidden.className = `meta-${key}`;
+    hidden.value = value ?? '';
+    td.appendChild(hidden);
+  });
+}
+
+function getRowMeta(tr, key) {
+  return tr.querySelector(`.meta-${key}`)?.value || '';
+}
+
+function syncSuspensionFromCardInputs() {
+  const vermelhosInput = document.getElementById('cartoesVermelhos');
+  const suspInput = document.getElementById('suspensoes');
+  const vermelhos = parseInt(vermelhosInput.value || 0, 10) || 0;
+  const suspensoes = parseInt(suspInput.value || 0, 10) || 0;
+
+  if (vermelhos > 0 && suspensoes === 0) {
+    suspInput.value = '1';
+  }
+}
+
+function syncDisciplinaFromPerformance() {
+  const rows = [...document.getElementById('perfBody').querySelectorAll('tr')];
+  let totAmarelos = 0;
+  let totVermelhos = 0;
+  let suspAuto = 0;
+
+  rows.forEach(tr => {
+    const inp = tr.querySelectorAll('input:not([type="hidden"])');
+    const amarelos = parseInt(inp[8]?.value || 0, 10) || 0;
+    const vermelhos = parseInt(inp[9]?.value || 0, 10) || 0;
+    const suspMeta = parseInt(getRowMeta(tr, 'suspensao_jogos') || 0, 10) || 0;
+
+    totAmarelos += Math.max(0, amarelos);
+    totVermelhos += Math.max(0, vermelhos);
+    if (vermelhos > 0) {
+      suspAuto += Math.max(1, suspMeta || vermelhos);
+    }
+  });
+
+  const amarelosInput = document.getElementById('cartoesAmarelos');
+  const vermelhosInput = document.getElementById('cartoesVermelhos');
+  const suspInput = document.getElementById('suspensoes');
+
+  amarelosInput.value = String(totAmarelos);
+  vermelhosInput.value = String(totVermelhos);
+  suspInput.value = String(Math.max(parseInt(suspInput.value || 0, 10) || 0, suspAuto, totVermelhos > 0 ? 1 : 0));
+}
+
+function addPerfRow(vals) {
+  const tbody = document.getElementById('perfBody');
+  const tr = document.createElement('tr');
+  const isObj = vals && typeof vals === 'object' && !Array.isArray(vals);
+  const v = vals || [new Date().getFullYear(),'','0','1','0','0','0','0','0','0'];
+  const jogoId = isObj ? (v.id || '') : '';
+  const data = isObj
+    ? [
+        v.temporada || '', v.competicao || '', String(v.minutos || 0), String(v.jogos || 1),
+        String(v.titulares || 0), String(v.substituicoes || 0), String(v.gols || 0), String(v.assistencias || 0),
+        String(v.amarelos || 0), String(v.vermelhos || 0)
+      ]
+    : v;
+  const meta = {
+    id: isObj ? (v.id || '') : '',
+    data_jogo: isObj ? (v.data_jogo || '') : '',
+    finalizacoes: isObj ? (v.finalizacoes || 0) : 0,
+    passes_certos: isObj ? (v.passes_certos || 0) : 0,
+    passes_errados: isObj ? (v.passes_errados || 0) : 0,
+    desarmes: isObj ? (v.desarmes || 0) : 0,
+    faltas_cometidas: isObj ? (v.faltas_cometidas || 0) : 0,
+    faltas_sofridas: isObj ? (v.faltas_sofridas || 0) : 0,
+    nota_jogo: isObj ? (v.nota_jogo || 0) : 0,
+    suspensao_jogos: isObj ? (v.suspensao_jogos || 0) : 0,
+  };
+  const sizes = ['inp-yr','inp-lg','inp-md','inp-sm','inp-sm','inp-sm','inp-sm','inp-sm','inp-sm','inp-sm'];
+  const types = ['text','text','number','number','number','number','number','number','number','number'];
+  data.forEach((val,i) => {
+    const td = document.createElement('td');
+    const inp = document.createElement('input');
+    inp.type = types[i]; inp.value = val;
+    inp.className = sizes[i];
+    inp.addEventListener('change', () => {
+      syncDisciplinaFromPerformance();
+      updateCharts();
+    });
+    if (i === 0) {
+      setRowMeta(td, meta);
+    }
+    td.appendChild(inp); tr.appendChild(td);
+  });
+  const tdDel = document.createElement('td');
+  tdDel.appendChild(mkDelBtn(() => {
+    tr.remove();
+    syncDisciplinaFromPerformance();
+    updateCharts();
+  }));
+  tr.appendChild(tdDel);
+  tbody.appendChild(tr);
+  if (vals) syncDisciplinaFromPerformance();
+  updateCharts();
+}
+
+function addJogoDetalhado() {
+  const dataJogo = document.getElementById('jogoData').value;
+  const temporada = document.getElementById('jogoTemporada').value.trim();
+  if (!dataJogo || !temporada) {
+    showToast('⚠️', 'Data do jogo e temporada são obrigatórios.');
+    return;
+  }
+
+  const row = {
+    data_jogo: (() => {
+      const [y, m, d] = dataJogo.split('-');
+      return `${d}/${m}/${y}`;
+    })(),
+    temporada,
+    competicao: document.getElementById('jogoAdversario').value.trim(),
+    minutos: parseInt(document.getElementById('jogoMinutos').value || 0, 10),
+    jogos: 1,
+    titulares: 0,
+    substituicoes: 0,
+    gols: parseInt(document.getElementById('jogoGols').value || 0, 10),
+    assistencias: parseInt(document.getElementById('jogoAssistencias').value || 0, 10),
+    amarelos: parseInt(document.getElementById('jogoAmarelos').value || 0, 10),
+    vermelhos: parseInt(document.getElementById('jogoVermelhos').value || 0, 10),
+    finalizacoes: parseInt(document.getElementById('jogoFinalizacoes').value || 0, 10),
+    passes_certos: parseInt(document.getElementById('jogoPassesCertos').value || 0, 10),
+    passes_errados: parseInt(document.getElementById('jogoPassesErrados').value || 0, 10),
+    desarmes: parseInt(document.getElementById('jogoDesarmes').value || 0, 10),
+    faltas_cometidas: parseInt(document.getElementById('jogoFaltasCometidas').value || 0, 10),
+    faltas_sofridas: parseInt(document.getElementById('jogoFaltasSofridas').value || 0, 10),
+    nota_jogo: parseFloat(document.getElementById('jogoNota').value || 0),
+    suspensao_jogos: 0,
+  };
+  if ((row.vermelhos || 0) > 0) {
+    row.suspensao_jogos = parseInt(document.getElementById('jogoSuspensaoVermelho').value || 1, 10);
+  }
+
+  addPerfRow(row);
+  showToast('✅', 'Jogo adicionado ao desempenho. Salve para persistir.');
+}
+
+// ─── TRANSFERS ───
+function addTransfer(vals) {
+  const list = document.getElementById('transferList');
+  const div = document.createElement('div');
+  div.className = 'tr-row';
+  const v = vals || ['','','','',''];
+  const phs = ['2026/2025','','Clube de origem','Clube de destino','Valor (€)'];
+  const types = ['text','date','text','text','text'];
+  v.forEach((val,i) => {
+    const inp = document.createElement('input');
+    inp.type = types[i]; inp.value = val;
+    if (phs[i]) inp.placeholder = phs[i];
+    div.appendChild(inp);
+  });
+  const del = mkDelBtn(() => div.remove());
+  div.appendChild(del);
+  list.appendChild(div);
+}
+
+// ─── CHARTS ───
+let chartGA=null, chartJM=null, chartRadar=null, chartDisc=null, chartGameRadar=null;
+
+function updateGameRadar() {
+  const dados = [
+    parseInt(document.getElementById('jogoGols').value || 0, 10),
+    parseInt(document.getElementById('jogoAssistencias').value || 0, 10),
+    parseInt(document.getElementById('jogoFinalizacoes').value || 0, 10),
+    parseInt(document.getElementById('jogoPassesCertos').value || 0, 10),
+    parseInt(document.getElementById('jogoDesarmes').value || 0, 10),
+    parseFloat(document.getElementById('jogoNota').value || 0),
+  ];
+  if (chartGameRadar) chartGameRadar.destroy();
+  chartGameRadar = new Chart(document.getElementById('chartGameRadar'), {
+    type: 'radar',
+    data: {
+      labels: ['Gols', 'Assistências', 'Finalizações', 'Passes Certos', 'Desarmes', 'Nota'],
+      datasets: [{
+        label: 'Jogo Atual',
+        data: dados,
+        backgroundColor: 'rgba(16,185,129,.18)',
+        borderColor: 'rgba(16,185,129,1)',
+        borderWidth: 2,
+        pointBackgroundColor: 'rgba(16,185,129,1)',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { r: { beginAtZero: true, suggestedMax: 10 } },
+      plugins: { legend: { display: true } }
+    }
+  });
+}
+
+function updateCharts() {
+  const rows = [...document.getElementById('perfBody').querySelectorAll('tr')];
+  const seasons = [], gols = [], assist = [], jogos = [], mins = [];
+  let totG=0,totA=0,totJ=0,totM=0;
+  rows.forEach(tr => {
+    const inp = tr.querySelectorAll('input:not([type="hidden"])');
+    const sea = inp[0].value || '—';
+    const g = parseInt(inp[6].value)||0;
+    const a = parseInt(inp[7].value)||0;
+    const j = parseInt(inp[3].value)||0;
+    const m = parseInt(inp[2].value)||0;
+    seasons.push(sea+' '+inp[1].value.substring(0,8));
+    gols.push(g); assist.push(a); jogos.push(j); mins.push(m);
+    totG+=g; totA+=a; totJ+=j; totM+=m;
+  });
+  // from career fields too
+  const cg = parseInt(document.getElementById('golsCarreira').value)||totG;
+  const ca = parseInt(document.getElementById('assistCarreira').value)||totA;
+  const cj = parseInt(document.getElementById('jogosCarreira').value)||totJ;
+  const cm = parseInt(document.getElementById('minutosCarreira').value)||totM;
+  document.getElementById('sc-gols').textContent  = cg;
+  document.getElementById('sc-assist').textContent= ca;
+  document.getElementById('sc-jogos').textContent = cj;
+  document.getElementById('sc-min').textContent   = cm+"'";
+
+  const purple  = 'rgba(108,43,217,1)';
+  const purpleA = 'rgba(108,43,217,.15)';
+  const green   = 'rgba(16,185,129,1)';
+  const greenA  = 'rgba(16,185,129,.15)';
+  const blue    = 'rgba(59,130,246,1)';
+  const blueA   = 'rgba(59,130,246,.15)';
+  const yellow  = 'rgba(245,158,11,1)';
+  const red     = 'rgba(239,68,68,1)';
+  const gridColor = 'rgba(0,0,0,.05)';
+
+  const baseOpts = {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{labels:{font:{family:'DM Sans',size:11},boxWidth:10}}},
+    scales:{
+      x:{grid:{color:gridColor},ticks:{font:{family:'DM Sans',size:10}}},
+      y:{grid:{color:gridColor},ticks:{font:{family:'DM Sans',size:10}},beginAtZero:true}
+    }
+  };
+
+  // Chart G&A
+  if (chartGA) chartGA.destroy();
+  chartGA = new Chart(document.getElementById('chartGA'),{
+    type:'bar',
+    data:{
+      labels: seasons.length ? seasons : ['Sem dados'],
+      datasets:[
+        {label:'Gols',data:seasons.length?gols:[0],backgroundColor:purpleA,borderColor:purple,borderWidth:2,borderRadius:5},
+        {label:'Assist.',data:seasons.length?assist:[0],backgroundColor:greenA,borderColor:green,borderWidth:2,borderRadius:5},
+      ]
+    },
+    options:{...baseOpts, plugins:{...baseOpts.plugins,legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}}}}
+  });
+
+  // Chart Jogos & Minutos
+  if (chartJM) chartJM.destroy();
+  chartJM = new Chart(document.getElementById('chartJM'),{
+    type:'line',
+    data:{
+      labels: seasons.length ? seasons : ['Sem dados'],
+      datasets:[
+        {label:'Jogos',data:seasons.length?jogos:[0],borderColor:blue,backgroundColor:blueA,borderWidth:2,fill:true,tension:.4,pointRadius:4,pointBackgroundColor:blue},
+        {label:'Min (/10)',data:seasons.length?mins.map(m=>Math.round(m/10)):[0],borderColor:purple,backgroundColor:purpleA,borderWidth:2,fill:true,tension:.4,pointRadius:4,pointBackgroundColor:purple},
+      ]
+    },
+    options:{...baseOpts}
+  });
+
+  // RADAR
+  const r = (id) => parseInt(document.getElementById(id).value)||3;
+  const radarData = [r('rng-ft'),r('rng-pa'),r('rng-dr'),r('rng-sh'),r('rng-ac'),r('rng-st'),r('rng-ld'),r('rng-co')];
+  if (chartRadar) chartRadar.destroy();
+  chartRadar = new Chart(document.getElementById('chartRadar'),{
+    type:'radar',
+    data:{
+      labels:['First Touch','Passing','Dribbling','Shooting','Acceleration','Stamina','Leadership','Confidence'],
+      datasets:[{
+        label:'Avaliação',
+        data:radarData,
+        backgroundColor:'rgba(108,43,217,.15)',
+        borderColor:purple,
+        borderWidth:2,
+        pointBackgroundColor:purple,
+        pointRadius:3,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      scales:{r:{min:0,max:5,ticks:{stepSize:1,font:{size:9,family:'DM Sans'}},grid:{color:gridColor},pointLabels:{font:{size:10,family:'DM Sans'}}}},
+      plugins:{legend:{display:false}}
+    }
+  });
+
+  // DISCIPLINE DOUGHNUT
+  const am = parseInt(document.getElementById('cartoesAmarelos').value)||0;
+  const rv = parseInt(document.getElementById('cartoesVermelhos').value)||0;
+  if (chartDisc) chartDisc.destroy();
+  chartDisc = new Chart(document.getElementById('chartDisc'),{
+    type:'doughnut',
+    data:{
+      labels:['Amarelos','Vermelhos','Sem cartão'],
+      datasets:[{
+        data:[am, rv, Math.max(1, (cj - am - rv))],
+        backgroundColor:[yellow,'rgba(239,68,68,.8)','rgba(229,231,235,.5)'],
+        borderColor:['#fff','#fff','#fff'],
+        borderWidth:3,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,cutout:'65%',
+      plugins:{legend:{position:'bottom',labels:{font:{family:'DM Sans',size:11},boxWidth:10}}}
+    }
+  });
+
+}
+
+// ─── FORM VALIDATION & SAVE ───
+function saveForm() {
+  const nome = document.getElementById('nomeCompleto').value.trim();
+  const nasc = document.getElementById('dataNasc').value;
+  const pos  = document.getElementById('posicao').value;
+  let valid = true;
+  [['f-nome','nomeCompleto'],['f-nasc','dataNasc'],['f-pos','posicao']].forEach(([fid,iid]) => {
+    const fld = document.getElementById(fid);
+    const inp = document.getElementById(iid);
+    if (!inp.value.trim()) { fld.classList.add('has-error'); inp.classList.add('error'); valid = false; }
+    else { fld.classList.remove('has-error'); inp.classList.remove('error'); }
+  });
+  if (!valid) {
+    goTab('dados', document.querySelector('.tab'));
+    showToast('⚠️','Preencha todos os campos obrigatórios!');
+    return;
+  }
+
+  const desempenhoRows = [...document.querySelectorAll('#perfBody tr')].map(tr => {
+    const inputs = tr.querySelectorAll('input:not([type="hidden"])');
+    const jogoId = getRowMeta(tr, 'id');
+    return {
+      id: jogoId || null,
+      data_jogo: getRowMeta(tr, 'data_jogo'),
+      temporada: inputs[0]?.value || '',
+      competicao: inputs[1]?.value || '',
+      minutos: inputs[2]?.value || '0',
+      jogos: inputs[3]?.value || '1',
+      titulares: inputs[4]?.value || '0',
+      substituicoes: inputs[5]?.value || '0',
+      gols: inputs[6]?.value || '0',
+      assistencias: inputs[7]?.value || '0',
+      amarelos: inputs[8]?.value || '0',
+      vermelhos: inputs[9]?.value || '0',
+      finalizacoes: getRowMeta(tr, 'finalizacoes') || '0',
+      passes_certos: getRowMeta(tr, 'passes_certos') || '0',
+      passes_errados: getRowMeta(tr, 'passes_errados') || '0',
+      desarmes: getRowMeta(tr, 'desarmes') || '0',
+      faltas_cometidas: getRowMeta(tr, 'faltas_cometidas') || '0',
+      faltas_sofridas: getRowMeta(tr, 'faltas_sofridas') || '0',
+      nota_jogo: getRowMeta(tr, 'nota_jogo') || '0',
+      suspensao_jogos: getRowMeta(tr, 'suspensao_jogos') || '0'
+    };
+  });
+
+  const transferRows = [...document.querySelectorAll('#transferList .tr-row')].map(row => {
+    const inputs = row.querySelectorAll('input');
+    return [
+      inputs[0]?.value || '', inputs[1]?.value || '', inputs[2]?.value || '', inputs[3]?.value || '', inputs[4]?.value || ''
+    ];
+  });
+
+  const redes = {
+    wiki: document.getElementById('linkWiki').value || '',
+    instagram: document.getElementById('linkIG').value || '',
+    twitter: document.getElementById('linkTW').value || '',
+    youtube: document.getElementById('linkYT').value || '',
+    transfermarkt: document.getElementById('linkTM').value || '',
+    sofascore: document.getElementById('linkSS').value || '',
+    video: document.getElementById('linkVideo').value || '',
+    observacoes: document.getElementById('obsGeral').value || ''
+  };
+
+  document.getElementById('desempenho_competicoes').value = JSON.stringify(desempenhoRows);
+  document.getElementById('transferencias').value = JSON.stringify(transferRows);
+  document.getElementById('redes_sociais').value = JSON.stringify(redes);
+  syncSuspensionFromCardInputs();
+  document.getElementById('atletaEditForm').submit();
+}
+
+function confirmDelete() {
+  if (confirm('Tem certeza que deseja excluir este atleta? Esta ação não pode ser desfeita.')) {
+    showToast('🗑','Atleta excluído.');
+    setTimeout(()=>window.location.href='{{ url_for('atletas') }}', 1500);
+  }
+}
+
+function showToast(icon, msg) {
+  document.getElementById('toastIcon').textContent = icon;
+  document.getElementById('toastMsg').textContent  = msg;
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3000);
+}
+
+// ─── INIT ───
+initMode();
+loadFixedClubLogo();
+liveUpdate();
+const requestedTab = new URLSearchParams(window.location.search).get('tab');
+if (requestedTab) {
+  const tabEl = document.querySelector(`.tab[onclick*="'${requestedTab}'"]`);
+  if (tabEl) goTab(requestedTab, tabEl);
+}
+const initialStatus = document.getElementById('statusAtleta').value || 'ativo';
+setStatus(initialStatus, document.querySelector(`.sp[onclick*="'${initialStatus}'"]`) || document.querySelector('.sp'));
+
+if (Array.isArray(desempenhoInicial) && desempenhoInicial.length) {
+  desempenhoInicial.forEach(row => addPerfRow(row));
+} else {
+  addPerfRow();
+}
+
+if (Array.isArray(transferenciasIniciais) && transferenciasIniciais.length) {
+  transferenciasIniciais.forEach(row => addTransfer(row));
+}
+
+document.getElementById('linkWiki').value = redesSociaisIniciais.wiki || '';
+document.getElementById('linkIG').value = redesSociaisIniciais.instagram || '';
+document.getElementById('linkTW').value = redesSociaisIniciais.twitter || '';
+document.getElementById('linkYT').value = redesSociaisIniciais.youtube || '';
+document.getElementById('linkTM').value = redesSociaisIniciais.transfermarkt || '';
+document.getElementById('linkSS').value = redesSociaisIniciais.sofascore || '';
+document.getElementById('linkVideo').value = redesSociaisIniciais.video || '';
+document.getElementById('obsGeral').value = redesSociaisIniciais.observacoes || '';
+updateGameRadar();
+
+{% if atleta.foto %}
+(() => {
+  const fotoUrl = "{{ url_for('serve_foto_atleta', filename=atleta.foto) }}";
+  const ring = document.getElementById('avatarRing');
+  ring.innerHTML = `<img src="${fotoUrl}" alt="foto"><div class="avatar-overlay"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Alterar foto</span></div>`;
+  document.getElementById('headerAvatarWrap').innerHTML = `<img src="${fotoUrl}" style="width:68px;height:68px;object-fit:cover;border-radius:50%">`;
+})();
+{% endif %}
+</script>
+</body>
+</html>

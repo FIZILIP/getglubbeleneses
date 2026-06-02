@@ -1,0 +1,410 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .estats-container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .info-atleta-stats {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        background: linear-gradient(145deg, #111827, #0F1117);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 24px;
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+    
+    .foto-atleta-stats {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #0033A0, #001a4d);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40px;
+        color: #FFD700;
+    }
+    
+    .foto-atleta-stats img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    
+    .info-stats h2 {
+        font-size: 28px;
+        margin: 0 0 8px;
+    }
+    
+    .temporadas-tabs {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+    }
+    
+    .tab-temporada {
+        padding: 10px 24px;
+        border-radius: 30px;
+        background: rgba(255,255,255,0.05);
+        color: #9CA3AF;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    
+    .tab-temporada:hover,
+    .tab-temporada.active {
+        background: linear-gradient(135deg, #0033A0, #FFD700);
+        color: white;
+    }
+    
+    .stats-cards {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 16px;
+        margin-bottom: 32px;
+    }
+    
+    .stat-card-resumo {
+        background: linear-gradient(145deg, #111827, #0F1117);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 20px;
+        padding: 20px;
+        text-align: center;
+    }
+    
+    .stat-card-resumo .valor {
+        font-size: 32px;
+        font-weight: 900;
+        color: #FFD700;
+    }
+    
+    .stat-card-resumo .label {
+        font-size: 12px;
+        color: #6B7280;
+        margin-top: 8px;
+    }
+    
+    .tabela-jogos {
+        background: linear-gradient(145deg, #111827, #0F1117);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 20px;
+        overflow: hidden;
+    }
+    
+    .tabela-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .btn-add-jogo {
+        background: linear-gradient(135deg, #0033A0, #FFD700);
+        border: none;
+        padding: 10px 20px;
+        border-radius: 12px;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .btn-add-jogo:hover {
+        transform: translateY(-2px);
+    }
+    
+    .sem-dados {
+        text-align: center;
+        padding: 60px;
+        color: #6B7280;
+    }
+    
+    /* Modal */
+    .modal-estats .modal-content {
+        background: linear-gradient(135deg, #111827, #0F1117);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 24px;
+    }
+    
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+    
+    .form-field {
+        margin-bottom: 16px;
+    }
+    
+    .form-field label {
+        display: block;
+        margin-bottom: 8px;
+        color: #9CA3AF;
+        font-size: 13px;
+        font-weight: 600;
+    }
+    
+    .form-field input, 
+    .form-field select {
+        width: 100%;
+        padding: 10px 14px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 10px;
+        color: white;
+    }
+    
+    .badge-gols { background: rgba(16,185,129,0.2); color: #10B981; }
+    .badge-assist { background: rgba(59,130,246,0.2); color: #3B82F6; }
+    .badge-cartao { background: rgba(245,158,11,0.2); color: #F59E0B; }
+</style>
+
+<div class="estats-container">
+    <!-- Info do Atleta -->
+    <div class="info-atleta-stats">
+        <div class="foto-atleta-stats">
+            {% if atleta.foto %}
+            <img src="{{ url_for('serve_foto_atleta', filename=atleta.foto) }}" alt="">
+            {% else %}
+            <i class="fas fa-user"></i>
+            {% endif %}
+        </div>
+        <div class="info-stats">
+            <h2 class="text-white">{{ atleta.nome }}</h2>
+            <p class="text-muted mb-0">{{ atleta.posicao or 'Posição não definida' }} • Nº {{ atleta.numero or '?' }}</p>
+        </div>
+    </div>
+    
+    <!-- Tabs por Temporada -->
+    <div class="temporadas-tabs">
+        {% for temp, dados in estatisticas.items() %}
+        <a href="?temporada={{ temp }}" class="tab-temporada {% if request.args.get('temporada', '') == temp or (loop.first and not request.args.get('temporada')) %}active{% endif %}">
+            {{ temp }}
+        </a>
+        {% endfor %}
+        {% if not estatisticas %}
+        <span class="text-muted">Nenhuma temporada registrada</span>
+        {% endif %}
+    </div>
+    
+    {% set temporada_ativa = request.args.get('temporada', '') %}
+    {% set dados_ativa = estatisticas.get(temporada_ativa, None) %}
+    {% if not dados_ativa and estatisticas %}
+        {% set dados_ativa = estatisticas.values()|first %}
+    {% endif %}
+    
+    {% if dados_ativa %}
+    <!-- Cards Resumo -->
+    <div class="stats-cards">
+        <div class="stat-card-resumo">
+            <div class="valor">{{ dados_ativa.total.jogos }}</div>
+            <div class="label">Jogos</div>
+        </div>
+        <div class="stat-card-resumo">
+            <div class="valor">{{ dados_ativa.total.gols }}</div>
+            <div class="label">Gols</div>
+        </div>
+        <div class="stat-card-resumo">
+            <div class="valor">{{ dados_ativa.total.assistencias }}</div>
+            <div class="label">Assistências</div>
+        </div>
+        <div class="stat-card-resumo">
+            <div class="valor">{{ dados_ativa.total.minutos }}</div>
+            <div class="label">Minutos</div>
+        </div>
+        <div class="stat-card-resumo">
+            <div class="valor">{{ "%.1f"|format(dados_ativa.total.media_nota) }}</div>
+            <div class="label">Média Nota</div>
+        </div>
+    </div>
+    
+    <!-- Tabela de Jogos -->
+    <div class="tabela-jogos">
+        <div class="tabela-header">
+            <h4 style="margin: 0; color: #FFD700;"><i class="fas fa-calendar-alt"></i> Histórico de Jogos</h4>
+            <button class="btn-add-jogo" data-bs-toggle="modal" data-bs-target="#modalAddEstatistica">
+                <i class="fas fa-plus"></i> Adicionar Jogo
+            </button>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="custom-table table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Adversário</th>
+                        <th>Min</th>
+                        <th>Gols</th>
+                        <th>Assist</th>
+                        <th>Finalizações</th>
+                        <th>Passes</th>
+                        <th>Desarmes</th>
+                        <th>Cartões</th>
+                        <th>Nota</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for jogo in dados_ativa.jogos|sort(attribute='data_jogo', reverse=True) %}
+                    <tr>
+                        <td>{{ jogo.data_jogo.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ jogo.adversario or '—' }}</td>
+                        <td>{{ jogo.minutos_jogados }}'</td>
+                        <td class="badge-gols" style="font-weight: 700;">{{ jogo.gols }}</td>
+                        <td class="badge-assist">{{ jogo.assistencias }}</td>
+                        <td>{{ jogo.finalizacoes }}</td>
+                        <td>{{ jogo.passes_certos }}/{{ jogo.passes_certos + jogo.passes_errados }}</td>
+                        <td>{{ jogo.desarmes }}</td>
+                        <td>
+                            {% if jogo.cartoes_amarelos > 0 %}
+                            <span class="badge-cartao"><i class="fas fa-square"></i> {{ jogo.cartoes_amarelos }}</span>
+                            {% endif %}
+                            {% if jogo.cartoes_vermelhos > 0 %}
+                            <span class="badge-cartao" style="color: #EF4444;"><i class="fas fa-square"></i> {{ jogo.cartoes_vermelhos }}</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ "%.1f"|format(jogo.nota_jogo) }}</strong></td>
+                        <td>
+                            <a href="{{ url_for('editar_atleta', id=atleta.id, tab='desempenho') }}" class="btn btn-sm btn-outline-warning" style="margin-right:6px;">
+                                <i class="fas fa-pen"></i>
+                            </a>
+                            <form method="POST" action="{{ url_for('deletar_estatistica_jogo', estatistica_id=jogo.id) }}" style="display:inline;" onsubmit="return confirm('Excluir este jogo do histórico?')">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    {% else %}
+    <div class="sem-dados">
+        <i class="fas fa-chart-line fa-4x mb-3" style="opacity: 0.3;"></i>
+        <h4 class="text-white">Nenhuma estatística registrada</h4>
+        <p class="text-muted">Adicione o primeiro jogo para começar o acompanhamento</p>
+        <button class="btn-add-jogo" data-bs-toggle="modal" data-bs-target="#modalAddEstatistica">
+            <i class="fas fa-plus"></i> Adicionar Primeiro Jogo
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- MODAL: Adicionar Estatística de Jogo -->
+<div class="modal fade modal-estats" id="modalAddEstatistica" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #0033A0, #001a4d); border-radius: 24px 24px 0 0;">
+                <h5 class="modal-title text-white">
+                    <i class="fas fa-futbol me-2" style="color: #FFD700;"></i>Adicionar Estatística de Jogo
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('adicionar_estatistica_jogo', atleta_id=atleta.id) }}">
+                <div class="modal-body p-4">
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label>Data do Jogo *</label>
+                            <input type="date" name="data_jogo" required>
+                        </div>
+                        <div class="form-field">
+                            <label>Temporada *</label>
+                            <select name="temporada" required>
+                                <option value="{{ now().year }}/{{ now().year + 1 }}">{{ now().year }}/{{ now().year + 1 }}</option>
+                                <option value="{{ now().year - 1 }}/{{ now().year }}">{{ now().year - 1 }}/{{ now().year }}</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label>Adversário</label>
+                            <input type="text" name="adversario" placeholder="Ex: SL Benfica">
+                        </div>
+                        <div class="form-field">
+                            <label>Minutos Jogados</label>
+                            <input type="number" name="minutos_jogados" value="0" min="0" max="120">
+                        </div>
+                        <div class="form-field">
+                            <label>Gols</label>
+                            <input type="number" name="gols" value="0" min="0">
+                        </div>
+                        <div class="form-field">
+                            <label>Assistências</label>
+                            <input type="number" name="assistencias" value="0" min="0">
+                        </div>
+                        <div class="form-field">
+                            <label>Finalizações</label>
+                            <input type="number" name="finalizacoes" value="0" min="0">
+                        </div>
+                        <div class="form-field">
+                            <label>Passes Certos</label>
+                            <input type="number" name="passes_certos" value="0" min="0">
+                        </div>
+                        <div class="form-field">
+                            <label>Passes Errados</label>
+                            <input type="number" name="passes_errados" value="0" min="0">
+                        </div>
+                        <div class="form-field">
+                            <label>Desarmes</label>
+                            <input type="number" name="desarmes" value="0" min="0">
+                        </div>
+                        <div class="form-field">
+                            <label>Faltas Cometidas</label>
+                            <input type="number" name="faltas_cometidas" value="0" min="0">
+                        </div>
+                        <div class="form-field">
+                            <label>Faltas Sofridas</label>
+                            <input type="number" name="faltas_sofridas" value="0" min="0">
+                        </div>
+                        <div class="form-field">
+                            <label>Cartões Amarelos</label>
+                            <input type="number" name="cartoes_amarelos" value="0" min="0" max="2">
+                        </div>
+                        <div class="form-field">
+                            <label>Cartões Vermelhos</label>
+                            <input type="number" name="cartoes_vermelhos" value="0" min="0" max="1">
+                        </div>
+                        <div class="form-field">
+                            <label>Nota do Jogo (0-10)</label>
+                            <input type="number" step="0.5" name="nota_jogo" value="0" min="0" max="10">
+                        </div>
+                        <div class="form-field full-width" style="grid-column: span 2;">
+                            <label>Observação</label>
+                            <textarea name="observacao" rows="2" class="notas-textarea" style="width: 100%;"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 px-4 pb-4">
+                    <button type="button" class="btn btn-outline-premium" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn-add-jogo">Salvar Estatística</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Adicionar ano atual para o contexto do template
+    // Isso é passado pelo backend, mas vamos garantir
+    document.addEventListener('DOMContentLoaded', function() {
+        const anoAtual = new Date().getFullYear();
+        const selectTemporada = document.querySelector('select[name="temporada"]');
+        if (selectTemporada && !selectTemporada.value) {
+            selectTemporada.value = `${anoAtual}/${anoAtual + 1}`;
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+  .profile-head {
+    background: #efeff2;
+    border: 1px solid #cfd1d8;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 14px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    align-items: center;
+  }
+  .ath-info { display: flex; gap: 14px; align-items: center; }
+  .ath-avatar {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    background: linear-gradient(135deg,#3d4f99,#8590b8);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 28px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+  }
+  .ath-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .logo-upload-badge {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #0b3ea8;
+    color: #fff;
+    border: 2px solid #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+  .ath-name { font-size: 34px; font-weight: 800; color: #111218; line-height: 1; }
+  .ath-sub { font-size: 18px; color: #353944; }
+  .ath-meta { font-size: 15px; color: #2a2f38; margin-top: 4px; }
+
+  .actions-right { display: flex; gap: 10px; }
+  .btn-square,
+  .btn-watch {
+    height: 54px; border: 1px solid #a9a9b3; border-radius: 12px; background: #fff;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 0 18px; font-size: 20px; text-decoration: none; color: #1456d8; font-weight: 700;
+  }
+  .btn-watch { background: linear-gradient(90deg,#0b3ea8,#2e6dff); border-color: transparent; color: #fff; }
+
+  .subtabs {
+    border-bottom: 1px solid #bfc2cb;
+    margin-bottom: 14px;
+    display: flex;
+    gap: 26px;
+    padding-left: 8px;
+  }
+  .subtabs a {
+    font-size: 16px;
+    color: #1f232c;
+    text-decoration: none;
+    padding: 10px 2px;
+    border-bottom: 4px solid transparent;
+    font-weight: 500;
+  }
+  .subtabs a.active { border-color: #2e6dff; font-weight: 700; }
+
+  .dash-grid {
+    display: grid;
+    grid-template-columns: 540px 1fr;
+    gap: 14px;
+  }
+  .side-card,
+  .panel {
+    background: #efeff2;
+    border: 1px solid #b5b8c0;
+    border-radius: 14px;
+  }
+  .side-card { padding: 18px; }
+  .title-xl { font-size: 38px; font-weight: 800; margin: 0 0 12px; }
+  .kv {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    row-gap: 8px;
+    column-gap: 16px;
+    font-size: 16px;
+  }
+  .kv .k { color: #2d3240; }
+  .kv .v { font-weight: 700; color: #1b1f27; }
+
+  .socials { display: flex; gap: 10px; margin: 14px 0; }
+  .socials a {
+    width: 38px; height: 38px; border-radius: 50%; border: 1px solid #bfc2cb;
+    display: inline-flex; align-items: center; justify-content: center; color: #232733; text-decoration: none;
+  }
+
+  .panel-head {
+    padding: 14px 18px;
+    border-bottom: 1px solid #bfc2cb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .panel-title { font-size: 36px; font-weight: 800; margin: 0; }
+  .panel-body { padding: 0; }
+  .table-like { width: 100%; border-collapse: collapse; }
+  .table-like th, .table-like td {
+    border-bottom: 1px solid #bfc2cb;
+    padding: 10px 12px;
+    font-size: 15px;
+    color: #1b1f27;
+    background: transparent;
+  }
+  .table-like th { font-weight: 700; }
+  .table-foot-link {
+    display: block; text-align: center; color: #1456d8; font-weight: 800; text-decoration: none; padding: 12px;
+  }
+
+  .mini-kpi {
+    display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .mini-kpi .item {
+    background: #fff;
+    border: 1px solid #cfd2d9;
+    border-radius: 12px;
+    padding: 10px;
+  }
+  .mini-kpi .n { font-size: 24px; font-weight: 800; color: #1a1f2a; }
+  .mini-kpi .l { font-size: 14px; color: #515968; }
+
+  @media (max-width: 1200px) {
+    .profile-head { grid-template-columns: 1fr; }
+    .dash-grid { grid-template-columns: 1fr; }
+    .ath-name,.panel-title,.title-xl { font-size: 28px; }
+  }
+</style>
+
+<section class="profile-head">
+  <div class="ath-info">
+    <form id="clubLogoForm" method="POST" action="{{ url_for('upload_logo_clube') }}" enctype="multipart/form-data">
+      <label class="ath-avatar" for="clubLogoInput" title="Clique para alterar logo do clube">
+        {% if club_logo_url %}
+        <img src="{{ club_logo_url }}" alt="Logo do clube">
+        {% else %}
+        <i class="fas fa-shield"></i>
+        {% endif %}
+        <span class="logo-upload-badge"><i class="fas fa-camera"></i></span>
+      </label>
+      <input id="clubLogoInput" name="logo_clube" type="file" accept="image/*" style="display:none">
+    </form>
+    <div>
+      <div class="ath-name" id="clubNomeDisplay">{{ club_display_name }}</div>
+      <div class="ath-sub"  id="clubSubDisplay">{{ club_subtitulo }}</div>
+      <div class="ath-meta" id="clubMetaDisplay">{{ club_meta }}</div>
+    </div>
+  </div>
+  <div class="actions-right">
+    {% if current_user.is_admin %}
+    <button class="btn-square" onclick="document.getElementById('modalEditClub').style.display='flex'" title="Editar informações do clube">
+      <i class="fas fa-pen"></i>
+    </button>
+    {% endif %}
+    <a class="btn-square" href="{{ url_for('documentos') }}"><i class="fas fa-clipboard-list"></i></a>
+    <a class="btn-watch" href="{{ url_for('analise_desempenho') }}"><i class="fas fa-eye"></i> Monitorar</a>
+  </div>
+</section>
+
+<!-- Modal editar clube -->
+<div id="modalEditClub" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:32px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+    <h3 style="margin:0 0 20px;font-size:20px;font-weight:800;">Editar Informações do Clube</h3>
+    <form method="POST" action="{{ url_for('update_nome_clube') }}">
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:12px;font-weight:700;color:#6b7280;margin-bottom:6px;">NOME DO CLUBE</label>
+        <input name="club_name" value="{{ club_display_name }}" required
+               style="width:100%;padding:10px 14px;border:1px solid #d1d5db;border-radius:8px;font-size:15px;box-sizing:border-box;">
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:12px;font-weight:700;color:#6b7280;margin-bottom:6px;">SUBTÍTULO</label>
+        <input name="club_subtitulo" value="{{ club_subtitulo }}"
+               style="width:100%;padding:10px 14px;border:1px solid #d1d5db;border-radius:8px;font-size:15px;box-sizing:border-box;"
+               placeholder="Ex: Painel Central de Gestão do Clube">
+      </div>
+      <div style="margin-bottom:20px;">
+        <label style="display:block;font-size:12px;font-weight:700;color:#6b7280;margin-bottom:6px;">META / DESCRIÇÃO</label>
+        <input name="club_meta" value="{{ club_meta }}"
+               style="width:100%;padding:10px 14px;border:1px solid #d1d5db;border-radius:8px;font-size:15px;box-sizing:border-box;"
+               placeholder="Ex: Portugal | Futebol Profissional | Operação diária integrada">
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button type="button" onclick="document.getElementById('modalEditClub').style.display='none'"
+                style="padding:10px 20px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer;font-size:14px;">
+          Cancelar
+        </button>
+        <button type="submit"
+                style="padding:10px 20px;border:none;border-radius:8px;background:#2e6dff;color:#fff;cursor:pointer;font-size:14px;font-weight:700;">
+          Guardar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<nav class="subtabs">
+  <a class="active" href="{{ url_for('index') }}">Visão Geral</a>
+  <a href="{{ url_for('reunioes') }}">Anotações</a>
+  <a href="{{ url_for('analise_desempenho') }}">Avaliações</a>
+  <a href="{{ url_for('atletas') }}">Carreira</a>
+  <a href="{{ url_for('convocatorias') }}">Jogos</a>
+  <a href="{{ url_for('documentos') }}">Relatórios PRO</a>
+</nav>
+
+<div class="dash-grid">
+  <aside class="side-card">
+    <h2 class="title-xl">Visão Geral</h2>
+    <div class="kv">
+      <div class="k">Atletas no plantel:</div><div class="v">{{ num_atletas }}</div>
+      <div class="k">Em tratamento:</div><div class="v">{{ atletas_lesionados }}</div>
+      <div class="k">Suspensos:</div><div class="v">{{ atletas_suspensos }}</div>
+      <div class="k">Reuniões futuras:</div><div class="v">{{ num_reunioes }}</div>
+      <div class="k">Scouting ativo:</div><div class="v">{{ atletas_em_observacao }}</div>
+      <div class="k">Documentos:</div><div class="v">{{ total_documentos }}</div>
+      <div class="k">Inventário (itens):</div><div class="v">{{ total_itens_inventario }}</div>
+      <div class="k">Gastos do mês:</div><div class="v">€ {{ '%.2f'|format(total_gastos) }}</div>
+      <div class="k">Compras do mês:</div><div class="v">€ {{ '%.2f'|format(total_compras_mes) }}</div>
+      <div class="k">Patrocínios ativos:</div><div class="v">€ {{ '%.2f'|format(total_patrocinios_ativos) }}</div>
+    </div>
+
+    <div class="socials">
+      <a href="{{ url_for('atletas') }}" title="Plantel"><i class="fas fa-users"></i></a>
+      <a href="{{ url_for('departamento_medico') }}" title="Médico"><i class="fas fa-heart-pulse"></i></a>
+      <a href="{{ url_for('scouting') }}" title="Scouting"><i class="fas fa-binoculars"></i></a>
+      <a href="{{ url_for('compras') }}" title="Financeiro"><i class="fas fa-sack-dollar"></i></a>
+    </div>
+
+    <a href="{{ url_for('atletas') }}" class="btn-primary-premium" style="width:100%;justify-content:center;margin-bottom:8px;">Fale com o Clube</a>
+    <a href="{{ url_for('reunioes') }}" class="btn-primary-premium" style="width:100%;justify-content:center;">Fale com a Equipe</a>
+
+    <div class="mini-kpi">
+      <div class="item"><div class="n">{{ convocatorias_recentes|length }}</div><div class="l">Convocatórias Recentes</div></div>
+      <div class="item"><div class="n">{{ fichas_medicas_recentes|length }}</div><div class="l">Fichas Médicas Recentes</div></div>
+      <div class="item"><div class="n">{{ proximas_reunioes|length }}</div><div class="l">Próx. Reuniões</div></div>
+      <div class="item"><div class="n">{{ eventos_calendario|length }}</div><div class="l">Eventos no Calendário</div></div>
+    </div>
+  </aside>
+
+  <section>
+    <article class="panel" style="margin-bottom:14px;">
+      <div class="panel-head">
+        <h3 class="panel-title">Desempenho nas últimas competições</h3>
+      </div>
+      <div class="panel-body">
+        <table class="table-like">
+          <thead>
+            <tr>
+              <th>Temporada</th>
+              <th>Competições</th>
+              <th>Clube</th>
+              <th>Atletas</th>
+              <th>Reuniões</th>
+              <th>Médico</th>
+              <th>Docs</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>{{ now().year }}</td><td>Gestão do plantel</td><td>{{ club_display_name }}</td><td>{{ num_atletas }}</td><td>{{ num_reunioes }}</td><td>{{ atletas_lesionados }}</td><td>{{ total_documentos }}</td></tr>
+            <tr><td>{{ now().year }}</td><td>Calendário e logística</td><td>{{ club_display_name }}</td><td>{{ total_itens_inventario }}</td><td>{{ proximas_reunioes|length }}</td><td>{{ fichas_medicas_recentes|length }}</td><td>{{ eventos_calendario|length }}</td></tr>
+            <tr><td>{{ now().year }}</td><td>Financeiro mensal</td><td>{{ club_display_name }}</td><td>€ {{ '%.0f'|format(total_compras_mes) }}</td><td>€ {{ '%.0f'|format(total_gastos) }}</td><td>€ {{ '%.0f'|format(total_contas_fixas_ativas) }}</td><td>€ {{ '%.0f'|format(total_patrocinios_ativos) }}</td></tr>
+          </tbody>
+        </table>
+        <a href="{{ url_for('analise_desempenho') }}" class="table-foot-link">+ Ver desempenho completo</a>
+      </div>
+    </article>
+
+    <article class="panel">
+      <div class="panel-head">
+        <h3 class="panel-title">Últimas transferências operacionais</h3>
+        <div style="font-size:20px;">Valor em Operações: <strong>€ {{ '%.2f'|format(total_gastos + total_compras_mes) }}</strong></div>
+      </div>
+      <div class="panel-body">
+        <table class="table-like">
+          <thead>
+            <tr>
+              <th>Temporada</th>
+              <th>Data</th>
+              <th>De</th>
+              <th>Para</th>
+              <th>Tipo</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in proximas_reunioes %}
+            <tr>
+              <td>{{ now().year }}</td>
+              <td>{{ r.data.strftime('%d/%m/%Y') if r.data else '-' }}</td>
+              <td>Direção</td>
+              <td>{{ r.local or 'Clube' }}</td>
+              <td>Reunião</td>
+              <td>{{ r.status or 'agendada' }}</td>
+            </tr>
+            {% endfor %}
+            {% for e in eventos_calendario %}
+            <tr>
+              <td>{{ now().year }}</td>
+              <td>{{ e.data.strftime('%d/%m/%Y') if e.data else '-' }}</td>
+              <td>Calendário</td>
+              <td>{{ e.titulo }}</td>
+              <td>{{ e.tipo or 'Evento' }}</td>
+              <td>ativo</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <a href="{{ url_for('calendario') }}" class="table-foot-link">+ Ver todas as movimentações</a>
+      </div>
+    </article>
+  </section>
+</div>
+<script>
+  (function () {
+    const input = document.getElementById('clubLogoInput');
+    const form = document.getElementById('clubLogoForm');
+    if (!input || !form) return;
+    input.addEventListener('change', function () {
+      if (input.files && input.files.length > 0) {
+        form.submit();
+      }
+    });
+  })();
+</script>
+{% endblock %}

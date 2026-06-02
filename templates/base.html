@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ club_display_name }} | Sistema de Gestão</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --purple-900: #0b3ea8;
+      --purple-800: #1456d8;
+      --purple-700: #2e6dff;
+      --bg: #ececef;
+      --surface: #ffffff;
+      --line: #d5d6da;
+      --text: #1c1f25;
+      --muted: #6b7280;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Outfit', sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      position: relative;
+      min-height: 100vh;
+      isolation: isolate;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background-image: url("{{ url_for('static', filename='img/getclub-logo.png') }}");
+      background-repeat: no-repeat;
+      background-position: center 56%;
+      background-size: min(100vw, 1060px);
+      opacity: 0.08;
+    }
+    body.modal-open::before { opacity: 0.02; }
+
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000; height: 86px;
+      background: linear-gradient(90deg, var(--purple-900), var(--purple-800));
+      display: flex; align-items: center; gap: 16px; padding: 0 22px;
+      color: #fff; border-bottom: 1px solid rgba(255,255,255,0.25);
+    }
+    .menu-btn { border: 0; background: transparent; color: #fff; font-size: 34px; line-height: 1; padding: 0; }
+    .brand { display: flex; align-items: center; gap: 10px; margin-right: 12px; }
+    .brand input {
+      background: transparent; border: 1px solid rgba(255,255,255,.35); color: #fff;
+      border-radius: 12px; height: 50px; min-width: 260px; padding: 0 14px;
+      font-size: 38px; line-height: 1; font-weight: 800; letter-spacing: -1px;
+      text-transform: uppercase; outline: none;
+    }
+    .brand input::placeholder { color: rgba(255,255,255,.85); }
+    .btn-brand-save {
+      height: 50px; border-radius: 12px; border: 1px solid rgba(255,255,255,.35);
+      background: rgba(255,255,255,.14); color: #fff; padding: 0 14px; font-size: 16px; font-weight: 700;
+    }
+    .club-logo-top {
+      width: 52px; height: 52px; border-radius: 50%; border: 2px solid rgba(255,255,255,.85);
+      background: rgba(255,255,255,.12); display: flex; align-items: center;
+      justify-content: center; overflow: hidden; cursor: pointer;
+    }
+    .club-logo-top img { width: 100%; height: 100%; object-fit: cover; }
+    .top-icons { margin-left: auto; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+    .user-display-name {
+      color: #fff; font-size: 28px; font-weight: 800; letter-spacing: 0.3px;
+      text-transform: uppercase; text-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+    .icon-badge { position: relative; font-size: 20px; color: #fff; }
+    .icon-badge .n {
+      position: absolute; top: -12px; right: -12px; min-width: 24px; height: 24px;
+      border-radius: 999px; background: #ff6b57; color: #fff; display: flex;
+      align-items: center; justify-content: center; font-size: 13px; font-weight: 700; padding: 0 6px;
+    }
+    .module-nav {
+      background: #f7f7f9; border-bottom: 1px solid #d5d6da; padding: 0 24px;
+      overflow-x: auto; white-space: nowrap; position: fixed; left: 0; right: 0; top: 86px; z-index: 999;
+    }
+    .module-nav a {
+      display: inline-flex; align-items: center; gap: 8px; padding: 14px 12px;
+      margin-right: 10px; color: #222; text-decoration: none; font-size: 16px;
+      font-weight: 500; border-bottom: 3px solid transparent;
+    }
+    .module-nav a:hover { color: var(--purple-900); }
+    .module-nav a.active { color: var(--purple-900); border-bottom-color: var(--purple-700); font-weight: 700; }
+
+    .page { width: min(1840px, calc(100vw - 32px)); margin: 156px auto 24px; }
+
+    .table-container {
+      background: var(--surface); border: 1px solid #babcc3; border-radius: 16px;
+      overflow: hidden; margin-bottom: 16px;
+    }
+    .table-header {
+      padding: 14px 20px; border-bottom: 1px solid #d0d2d8; display: flex;
+      justify-content: space-between; align-items: center; gap: 8px; background: #fafafc;
+    }
+    .chart-title { margin: 0; font-size: 22px; font-weight: 800; color: #101114; }
+    .custom-table { width: 100%; margin: 0; border-collapse: collapse; }
+    .custom-table th, .custom-table td {
+      border-bottom: 1px solid #d0d2d8; padding: 13px 14px; font-size: 15px;
+      color: #151823; vertical-align: middle; background: #fff;
+    }
+    .custom-table thead th { font-weight: 700; background: #f6f6f8; color: #1b1d22; white-space: nowrap; }
+
+    .btn-primary-premium {
+      border: 0; border-radius: 10px; padding: 10px 14px; font-size: 14px; font-weight: 700;
+      color: #fff; text-decoration: none; display: inline-flex; gap: 8px; align-items: center;
+      background: linear-gradient(90deg, var(--purple-900), var(--purple-700));
+    }
+    .btn-outline-premium {
+      border: 1px solid #c8cad0; border-radius: 10px; padding: 10px 14px; font-size: 14px;
+      font-weight: 600; color: #1d2230; text-decoration: none; background: #fff;
+    }
+    .module-wrap { background: #fff; border: 1px solid #babcc3; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+    .module-title { font-size: 24px; font-weight: 800; margin: 0 0 12px; color: #101114; }
+    .badge-soft { border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; }
+    .badge-soft.ok { background: #dcfce7; color: #166534; }
+    .badge-soft.warn { background: #ffedd5; color: #9a3412; }
+    .badge-soft.danger { background: #fee2e2; color: #991b1b; }
+
+    .content h1.text-white, .content h2.text-white, .content h3.text-white,
+    .content h4.text-white, .content h5.text-white { color: #13161d !important; }
+
+    /* ========== TEMA GLOBAL ========== */
+    .content .text-white, .content .text-light { color: #1a1d24 !important; }
+    .content .text-muted { color: #5f6675 !important; }
+
+    .content .card:not(.atleta-card),
+    .content .panel,
+    .content .module-wrap,
+    .content .table-container,
+    .content [class*="card"]:not(.atleta-card):not(.card-header-img):not(.card-body-info):not(.card-actions):not(.jogadora-card),
+    .content [class*="-card"]:not(.atleta-card):not(.card-header-img):not(.card-body-info):not(.card-actions):not(.jogadora-card),
+    .content [class*="-panel"],
+    .content [class*="-box"] {
+      background: #ffffff !important;
+      border: 1px solid #cdd1d9 !important;
+      box-shadow: none !important;
+      color: #1c2230 !important;
+    }
+    .content [class*="header"]:not(.card-header-img),
+    .content [class*="-header"]:not(.card-header-img) { border-bottom-color: #d8dbe2 !important; }
+
+    .content [class*="-body"]:not(.card-body-info),
+    .content [class*="-info"]:not(.card-body-info):not(.jogadora-info),
+    .content [class*="-linha"]:not(.info-linha),
+    .content .ficha-lesao,
+    .content .scout-clube,
+    .content .reuniao-data-hora,
+    .content .pauta-texto { color: #374151 !important; }
+
+    .content .table, .content .custom-table, .content .table-like, .content table {
+      color: #1b1f27 !important; background: #fff !important;
+    }
+    .content .table thead th, .content .custom-table thead th,
+    .content .table-like thead th, .content table thead th {
+      background: #f5f7fb !important; color: #1f2430 !important; border-bottom: 1px solid #d8dbe2 !important;
+    }
+    .content .table td, .content .custom-table td, .content .table-like td, .content table td {
+      border-bottom: 1px solid #dfe2e8 !important; color: #1f2430 !important; background: #fff !important;
+    }
+    .content .table tr:hover td, .content .custom-table tr:hover td,
+    .content .table-like tr:hover td, .content table tr:hover td { background: #f5f9ff !important; }
+
+    .content .btn-primary-premium, .content .btn-add-flutuante, .content .btn-add-ficha,
+    .content .btn-add-reuniao, .content .btn-add-scout, .content .btn-salvar-ficha,
+    .content .btn-salvar-reuniao, .content .btn-salvar-scout, .content .btn-watch,
+    .content .btn-primary, .content button.btn-primary {
+      background: linear-gradient(90deg, #0b3ea8, #2e6dff) !important;
+      border-color: #0b3ea8 !important; color: #fff !important;
+    }
+    .content .btn-outline-premium, .content .btn-secondary, .content button.btn-secondary,
+    .content .btn-scout, .content .btn-reuniao, .content .btn-ficha,
+    .content .btn-square, .content .btn-outline-primary {
+      background: #ffffff !important; border: 1px solid #bfc5d1 !important; color: #1a2336 !important;
+    }
+    .content .btn-outline-premium:hover, .content .btn-secondary:hover,
+    .content .btn-scout:hover, .content .btn-reuniao:hover, .content .btn-ficha:hover,
+    .content .btn-square:hover, .content .btn-outline-primary:hover {
+      background: #eef5ff !important; border-color: #2e6dff !important; color: #0b3ea8 !important;
+    }
+    /* btn-card só fora de atleta-card */
+    .content .btn-card:not(.atleta-card .btn-card) {
+      background: #ffffff !important; border: 1px solid #bfc5d1 !important; color: #1a2336 !important;
+    }
+
+    .content .form-control, .content .form-select, .content textarea.form-control,
+    .content input, .content select, .content textarea {
+      background: #fff !important; color: #111827 !important; border: 1px solid #c8cdd8 !important;
+    }
+    .content .form-control:focus, .content .form-select:focus, .content textarea.form-control:focus,
+    .content input:focus, .content select:focus, .content textarea:focus {
+      border-color: #2e6dff !important; box-shadow: 0 0 0 3px rgba(46,109,255,0.14) !important; outline: none !important;
+    }
+    .content .modal-premium .modal-content, .content .modal-content {
+      background: #ffffff !important; border: 1px solid #c8cdd8 !important; color: #1a2130 !important;
+    }
+    .content .modal-premium .modal-header, .content .modal-header {
+      background: #f3f7ff !important; border-bottom: 1px solid #d8dbe2 !important; color: #1a2336 !important;
+    }
+    .content .tab, .content .tabs .tab, .content .subtabs a, .content [class*="nav-link"] { color: #1f2430 !important; }
+    .content .tab.active, .content .tabs .tab.active, .content .subtabs a.active {
+      color: #0b3ea8 !important; border-bottom-color: #2e6dff !important;
+    }
+
+    /* ========== ATLETA CARDS — OVERRIDES FINAIS ========== */
+    .content .atleta-card,
+    html body .content .atleta-card {
+      background: #0a0f19 !important;
+      border: 1px solid rgba(74,85,104,.34) !important;
+      box-shadow: 0 24px 48px rgba(0,0,0,.55) !important;
+      color: #e2e8f0 !important;
+    }
+    .content .atleta-card .card-header-img { background: linear-gradient(135deg,#003bab 0%,#061d5d 100%) !important; border-bottom: 0 !important; }
+    .content .atleta-card .card-body-info { background: #0a0f19 !important; }
+    .content .atleta-card .card-actions { background: #0a0f19 !important; border-top: 0 !important; }
+    .content .atleta-card .nome-atleta { color: #ffffff !important; }
+    .content .atleta-card .posicao-badge { background: rgba(255,215,0,.20) !important; color: #ffdd16 !important; border: 1px solid rgba(255,215,0,.10) !important; }
+    .content .atleta-card .categoria-tag { background: rgba(0,51,160,.58) !important; color: #60a5fa !important; }
+    .content .atleta-card .info-linha,
+    .content .atleta-card .card-body-info,
+    .content .atleta-card .card-body-info * { color: #e2e8f0 !important; }
+    .content .atleta-card .btn-card { background: rgba(255,255,255,.04) !important; border: 1px solid rgba(148,163,184,.14) !important; color: #f8fafc !important; }
+    .content .atleta-card .btn-editar { background: rgba(255,215,0,.12) !important; color: #ffdd16 !important; border: 1px solid rgba(255,215,0,.32) !important; }
+    .content .atleta-card .btn-cartoes { background: rgba(245,158,11,.15) !important; color: #f59e0b !important; border: 1px solid rgba(245,158,11,.36) !important; }
+    .content .atleta-card .btn-remover { background: rgba(239,68,68,.15) !important; color: #ff4b4b !important; border: 1px solid rgba(239,68,68,.34) !important; }
+    .content .atleta-card .lesao-badge { background: rgba(239,68,68,.22) !important; color: #ff4b4b !important; border: 1px solid rgba(239,68,68,.08) !important; }
+
+    /* ========== TABS DE CATEGORIA ========== */
+    .content .categorias-nav .cat-tab {
+      background: #1e3a6e !important;
+      color: #c8d8f8 !important;
+      border: 1px solid rgba(100,140,255,0.3) !important;
+      font-weight: 600 !important;
+      opacity: 1 !important;
+    }
+    .content .categorias-nav .cat-tab *,
+    .content .categorias-nav .cat-tab i,
+    .content .categorias-nav .cat-tab span { color: #c8d8f8 !important; opacity: 1 !important; }
+    .content .categorias-nav .cat-tab:hover {
+      background: #254d96 !important;
+      color: #ffffff !important;
+    }
+    .content .categorias-nav .cat-tab.active {
+      background: linear-gradient(135deg,#0033A0,#061d5d) !important;
+      color: #FFD700 !important;
+      border-color: rgba(255,215,0,0.4) !important;
+    }
+    .content .categorias-nav .cat-tab.active *,
+    .content .categorias-nav .cat-tab.active i,
+    .content .categorias-nav .cat-tab.active span { color: #FFD700 !important; }
+    .content .categoria-header { background: linear-gradient(135deg,rgba(0,51,160,.25),rgba(6,29,93,.25)) !important; border: 1px solid rgba(255,215,0,.12) !important; }
+    .content .categoria-header h3 { color: #fff !important; }
+
+    @media (max-width: 1280px) {
+      .brand input { height: 44px; font-size: 26px; min-width: 180px; }
+      .btn-brand-save { height: 44px; font-size: 14px; }
+      .icon-badge { font-size: 20px; }
+      .club-logo-top { width: 44px; height: 44px; }
+      .user-display-name { font-size: 22px; }
+      .custom-table th, .custom-table td, .chart-title, .module-title { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+{% if current_user.is_authenticated %}
+  <header class="topbar">
+    <button class="menu-btn" type="button"><i class="fas fa-bars"></i></button>
+    <form method="POST" action="{{ url_for('upload_logo_clube') }}" enctype="multipart/form-data" style="margin:0;">
+      <label for="clubLogoTopInput" class="club-logo-top" title="Clique para alterar logo do clube">
+        {% if club_logo_url %}
+        <img src="{{ club_logo_url }}" alt="Logo do clube">
+        {% else %}
+        <i class="fas fa-shield"></i>
+        {% endif %}
+      </label>
+      <input id="clubLogoTopInput" name="logo_clube" type="file" accept="image/*" style="display:none">
+    </form>
+    <form class="brand" method="POST" action="{{ url_for('update_nome_clube') }}">
+      <input type="text" name="club_name" value="{{ club_display_name }}" aria-label="Nome do clube">
+      <button type="submit" class="btn-brand-save"><i class="fas fa-check"></i></button>
+    </form>
+    <div class="top-icons">
+      <div class="user-display-name">{{ current_user.username }}</div>
+    </div>
+  </header>
+
+  <nav class="module-nav">
+    <a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}"><i class="fas fa-house"></i> Dashboard</a>
+    <a href="{{ url_for('atletas') }}" class="{% if request.endpoint in ['atletas','editar_atleta','atleta_form'] %}active{% endif %}"><i class="fas fa-users"></i> Plantel</a>
+    <a href="{{ url_for('comissao') }}" class="{% if request.endpoint in ['comissao','editar_comissao'] %}active{% endif %}"><i class="fas fa-people-group"></i> Comissão</a>
+    <a href="{{ url_for('departamento_medico') }}" class="{% if request.endpoint == 'departamento_medico' %}active{% endif %}"><i class="fas fa-heart-pulse"></i> Médico</a>
+    <a href="{{ url_for('scouting') }}" class="{% if request.endpoint == 'scouting' %}active{% endif %}"><i class="fas fa-binoculars"></i> Scouting</a>
+    <a href="{{ url_for('convocatorias') }}" class="{% if request.endpoint == 'convocatorias' %}active{% endif %}"><i class="fas fa-list-check"></i> Convocatórias</a>
+    <a href="{{ url_for('reunioes') }}" class="{% if request.endpoint == 'reunioes' %}active{% endif %}"><i class="fas fa-calendar-days"></i> Reuniões</a>
+    <a href="{{ url_for('calendario') }}" class="{% if request.endpoint == 'calendario' %}active{% endif %}"><i class="fas fa-calendar-week"></i> Calendário</a>
+    <a href="{{ url_for('compras') }}" class="{% if request.endpoint == 'compras' %}active{% endif %}"><i class="fas fa-cart-shopping"></i> Compras</a>
+    <a href="{{ url_for('gastos') }}" class="{% if request.endpoint == 'gastos' %}active{% endif %}"><i class="fas fa-chart-line"></i> Gastos</a>
+    <a href="{{ url_for('contas_fixas') }}" class="{% if request.endpoint == 'contas_fixas' %}active{% endif %}"><i class="fas fa-file-invoice-dollar"></i> Contas Fixas</a>
+    <a href="{{ url_for('patrocinios') }}" class="{% if request.endpoint == 'patrocinios' %}active{% endif %}"><i class="fas fa-hand-holding-dollar"></i> Patrocínios</a>
+    <a href="{{ url_for('inventario') }}" class="{% if request.endpoint == 'inventario' %}active{% endif %}"><i class="fas fa-boxes-stacked"></i> Inventário</a>
+    <a href="{{ url_for('documentos') }}" class="{% if request.endpoint == 'documentos' %}active{% endif %}"><i class="fas fa-folder-open"></i> Documentos</a>
+    {% if current_user.is_admin %}
+    <a href="{{ url_for('usuarios') }}" class="{% if request.endpoint == 'usuarios' %}active{% endif %}"><i class="fas fa-user-shield"></i> Usuários</a>
+    <a href="{{ url_for('permissoes') }}" class="{% if request.endpoint == 'permissoes' %}active{% endif %}"><i class="fas fa-key"></i> Permissões</a>
+    {% endif %}
+    <a href="{{ url_for('logout') }}"><i class="fas fa-right-from-bracket"></i> Sair</a>
+  </nav>
+
+  <main class="page content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script>
+    (function () {
+      const input = document.getElementById('clubLogoTopInput');
+      if (!input) return;
+      input.addEventListener('change', function () {
+        if (input.files && input.files.length > 0) {
+          input.form.submit();
+        }
+      });
+    })();
+  </script>
+  {% block scripts %}{% endblock %}
+{% else %}
+  {% block login_content %}{% endblock %}
+{% endif %}
+</body>
+</html>

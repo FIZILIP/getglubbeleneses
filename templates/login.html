@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GET CLUB | Acesso</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0A0A0F;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Fundo com formas geométricas animadas */
+    .bg-shapes {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .shape {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.15;
+      animation: float 12s ease-in-out infinite;
+    }
+
+    .shape-1 {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, #7c3aed, #4f46e5);
+      top: -200px; left: -200px;
+      animation-delay: 0s;
+    }
+    .shape-2 {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, #a78bfa, #6d28d9);
+      bottom: -100px; right: -100px;
+      animation-delay: 4s;
+    }
+    .shape-3 {
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, #3b82f6, #1d4ed8);
+      top: 50%; left: 60%;
+      animation-delay: 8s;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-30px) scale(1.05); }
+    }
+
+    /* Grid de linhas no fundo */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-image:
+        linear-gradient(rgba(124, 58, 237, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(124, 58, 237, 0.06) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+
+    /* Container principal */
+    .login-wrapper {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 460px;
+      padding: 20px;
+    }
+
+    /* Card de login */
+    .login-card {
+      background: rgba(15, 15, 25, 0.85);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(124, 58, 237, 0.2);
+      border-radius: 24px;
+      padding: 48px 44px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset, 0 40px 80px rgba(0,0,0,0.6);
+    }
+
+    /* Logo */
+    .logo-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 36px;
+    }
+
+    .logo-img {
+      width: 88px;
+      height: 88px;
+      object-fit: contain;
+      margin-bottom: 16px;
+      filter: drop-shadow(0 0 24px rgba(124, 58, 237, 0.5));
+    }
+
+    .logo-text {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 4px;
+      background: linear-gradient(135deg, #c4b5fd, #a78bfa, #7c3aed);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .logo-sub {
+      font-size: 12px;
+      font-weight: 500;
+      color: #6b7280;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-top: 6px;
+    }
+
+    /* Linha divisória */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(124,58,237,0.3), transparent);
+      margin-bottom: 32px;
+    }
+
+    /* Alertas */
+    .alert {
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 13px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .alert-error {
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: #f87171;
+    }
+    .alert-success {
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #34d399;
+    }
+
+    /* Campos */
+    .field {
+      margin-bottom: 18px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #9ca3af;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .input-wrap .icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #6b7280;
+      font-size: 15px;
+      pointer-events: none;
+      transition: color 0.2s;
+    }
+
+    .input-wrap input {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 13px 14px 13px 42px;
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      color: #f3f4f6;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .input-wrap input::placeholder { color: #4b5563; }
+
+    .input-wrap input:focus {
+      border-color: rgba(124, 58, 237, 0.5);
+      background: rgba(124, 58, 237, 0.05);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+    }
+
+    .input-wrap input:focus + .icon,
+    .input-wrap:focus-within .icon {
+      color: #a78bfa;
+    }
+
+    /* Botão */
+    .btn-login {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      margin-top: 8px;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-login::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #8b5cf6, #6366f1);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .btn-login:hover::before { opacity: 1; }
+    .btn-login:active { transform: scale(0.98); }
+    .btn-login span { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+    /* Rodapé */
+    .login-footer {
+      text-align: center;
+      margin-top: 28px;
+      font-size: 12px;
+      color: #374151;
+    }
+
+    .login-footer span {
+      color: #6b7280;
+    }
+
+    /* Badges de features */
+    .features {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      background: rgba(124, 58, 237, 0.08);
+      border: 1px solid rgba(124, 58, 237, 0.15);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px;
+      color: #a78bfa;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-shapes">
+  <div class="shape shape-1"></div>
+  <div class="shape shape-2"></div>
+  <div class="shape shape-3"></div>
+</div>
+<div class="bg-grid"></div>
+
+<div class="login-wrapper">
+  <div class="login-card">
+
+    <div class="logo-wrap">
+      <img src="{{ url_for('static', filename='img/getclub-logo.png') }}" alt="GET CLUB" class="logo-img">
+      <div class="logo-text">GET CLUB</div>
+      <div class="logo-sub">Gestão de Clubes Desportivos</div>
+    </div>
+
+    <div class="divider"></div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ 'error' if category == 'error' else 'success' }}">
+          <i class="fas fa-{{ 'circle-exclamation' if category == 'error' else 'circle-check' }}"></i>
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('login') }}">
+      <div class="field">
+        <label>Utilizador</label>
+        <div class="input-wrap">
+          <input type="text" name="username" placeholder="Nome de utilizador" required autocomplete="username">
+          <i class="fas fa-user icon"></i>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Palavra-passe</label>
+        <div class="input-wrap">
+          <input type="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+          <i class="fas fa-lock icon"></i>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-login">
+        <span><i class="fas fa-arrow-right-to-bracket"></i> Entrar</span>
+      </button>
+    </form>
+
+    <div class="features">
+      <span class="badge"><i class="fas fa-shield-halved"></i> Seguro</span>
+      <span class="badge"><i class="fas fa-bolt"></i> Rápido</span>
+      <span class="badge"><i class="fas fa-chart-line"></i> Analítico</span>
+    </div>
+
+    <div class="login-footer">
+      <span>© 2025 GET CLUB · Todos os direitos reservados</span>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
