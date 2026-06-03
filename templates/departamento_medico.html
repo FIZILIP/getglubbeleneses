@@ -133,11 +133,13 @@
         padding: 0 20px 20px;
         display: flex;
         gap: 8px;
+        flex-wrap: wrap;
     }
     
     .btn-ficha {
-        flex: 1;
-        padding: 10px;
+        flex: 1 1 140px;
+        min-width: 130px;
+        padding: 10px 14px;
         border-radius: 12px;
         font-size: 13px;
         font-weight: 600;
@@ -150,12 +152,33 @@
         border: 1px solid rgba(255,255,255,0.1);
         background: rgba(255,255,255,0.03);
         color: #D1D5DB;
+        box-sizing: border-box;
     }
     
     .btn-ficha:hover {
         background: rgba(255,215,0,0.1);
         border-color: #FFD700;
         color: #FFD700;
+    }
+    
+    .btn-ficha.editar {
+        color: #F59E0B;
+        border-color: rgba(245,158,11,0.3);
+    }
+    
+    .btn-ficha.editar:hover {
+        background: rgba(245,158,11,0.1);
+        color: #F59E0B;
+    }
+    
+    .btn-ficha.remover {
+        color: #EF4444;
+        border-color: rgba(239,68,68,0.3);
+    }
+    
+    .btn-ficha.remover:hover {
+        background: rgba(239,68,68,0.1);
+        color: #EF4444;
     }
     
     .btn-ficha.recuperar {
@@ -308,11 +331,19 @@
             <button class="btn-ficha" data-bs-toggle="modal" data-bs-target="#modalDetalhes{{ ficha.id }}">
                 <i class="fas fa-info-circle"></i> Detalhes
             </button>
+            <button class="btn-ficha editar" data-bs-toggle="modal" data-bs-target="#modalEditar{{ ficha.id }}">
+                <i class="fas fa-edit"></i> Editar
+            </button>
             {% if ficha.status == 'em_tratamento' %}
             <button class="btn-ficha recuperar" data-bs-toggle="modal" data-bs-target="#modalAtualizar{{ ficha.id }}">
                 <i class="fas fa-check-circle"></i> Recuperar
             </button>
             {% endif %}
+            <form action="{{ url_for('remover_ficha_medica', id=ficha.id) }}" method="POST" style="margin:0;display:flex;flex:1;" onsubmit="return confirm('Deseja remover esta ficha médica?');">
+                <button type="submit" class="btn-ficha remover" style="width:100%; min-width:0;">
+                    <i class="fas fa-trash-alt"></i> Excluir
+                </button>
+            </form>
         </div>
     </div>
     {% endfor %}
@@ -458,6 +489,88 @@
                     <button type="button" class="btn btn-outline-premium" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn-salvar-ficha">
                         <i class="fas fa-save"></i> Salvar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Ficha -->
+<div class="modal fade modal-premium" id="modalEditar{{ ficha.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #0033A0, #001a4d); border-bottom: none; border-radius: 20px 20px 0 0;">
+                <h5 class="modal-title text-white">
+                    <i class="fas fa-edit me-2" style="color: #FFD700;"></i>Editar Ficha - {{ ficha.atleta.nome }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('atualizar_ficha_medica', id=ficha.id) }}" method="POST">
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Atleta</label>
+                            <select name="atleta_id" class="form-select">
+                                {% for a in atletas %}
+                                <option value="{{ a.id }}" {% if a.id == ficha.atleta_id %}selected{% endif %}>{{ a.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo de Lesão</label>
+                            <input type="text" name="tipo_lesao" class="form-control" value="{{ ficha.tipo_lesao or '' }}" placeholder="Ex: Entorse, Fratura...">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Data da Lesão</label>
+                            <input type="date" name="data_lesao" class="form-control" value="{{ ficha.data_lesao.strftime('%Y-%m-%d') if ficha.data_lesao else '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Retorno Previsto</label>
+                            <input type="date" name="data_retorno_previsto" class="form-control" value="{{ ficha.data_retorno_previsto.strftime('%Y-%m-%d') if ficha.data_retorno_previsto else '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Retorno Efetivo</label>
+                            <input type="date" name="data_retorno_efetivo" class="form-control" value="{{ ficha.data_retorno_efetivo.strftime('%Y-%m-%d') if ficha.data_retorno_efetivo else '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Gravidade</label>
+                            <select name="gravidade" class="form-select">
+                                <option value="" {% if not ficha.gravidade %}selected{% endif %}>Selecione...</option>
+                                <option value="leve" {% if ficha.gravidade == 'leve' %}selected{% endif %}>Leve</option>
+                                <option value="moderada" {% if ficha.gravidade == 'moderada' %}selected{% endif %}>Moderada</option>
+                                <option value="grave" {% if ficha.gravidade == 'grave' %}selected{% endif %}>Grave</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="em_tratamento" {% if ficha.status == 'em_tratamento' %}selected{% endif %}>Em Tratamento</option>
+                                <option value="recuperado" {% if ficha.status == 'recuperado' %}selected{% endif %}>Recuperado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Médico Responsável</label>
+                            <input type="text" name="medico_responsavel" class="form-control" value="{{ ficha.medico_responsavel or '' }}" placeholder="Dr. Nome">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Diagnóstico</label>
+                            <textarea name="diagnostico" class="form-control" rows="2">{{ ficha.diagnostico or '' }}</textarea>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Tratamento</label>
+                            <textarea name="tratamento" class="form-control" rows="2">{{ ficha.tratamento or '' }}</textarea>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Observações</label>
+                            <textarea name="observacoes" class="form-control" rows="2">{{ ficha.observacoes or '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 px-4 pb-4">
+                    <button type="button" class="btn btn-outline-premium" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn-salvar-ficha">
+                        <i class="fas fa-save"></i> Salvar Alterações
                     </button>
                 </div>
             </form>

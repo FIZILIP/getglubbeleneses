@@ -18,6 +18,12 @@ services:
         fromDatabase:
           name: getclub-db
           property: connectionString
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_BUCKET
+        value: getclub
     disk:
       name: getclub-data
       mountPath: /var/data

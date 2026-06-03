@@ -23,7 +23,7 @@
       margin: 0;
       font-family: 'Outfit', sans-serif;
       color: var(--text);
-      background: var(--bg);
+      background: #080d16;
       position: relative;
       min-height: 100vh;
       isolation: isolate;
@@ -34,13 +34,23 @@
       inset: 0;
       z-index: -1;
       pointer-events: none;
-      background-image: url("{{ url_for('static', filename='img/getclub-logo.png') }}");
+      background-image: url("{{ url_for('static', filename='img/getclub-system-bg.jpg') }}");
       background-repeat: no-repeat;
-      background-position: center 56%;
-      background-size: min(100vw, 1060px);
-      opacity: 0.08;
+      background-position: center center;
+      background-size: cover;
+      opacity: 0.30;
     }
-    body.modal-open::before { opacity: 0.02; }
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(8,13,22,0.82), rgba(8,13,22,0.88)),
+        radial-gradient(circle at center, rgba(11,62,168,0.10), rgba(8,13,22,0.72));
+    }
+    body.modal-open::before { opacity: 0.12; }
 
     .topbar {
       position: fixed; top: 0; left: 0; right: 0; z-index: 1000; height: 86px;
@@ -82,13 +92,66 @@
       background: #f7f7f9; border-bottom: 1px solid #d5d6da; padding: 0 24px;
       overflow-x: auto; white-space: nowrap; position: fixed; left: 0; right: 0; top: 86px; z-index: 999;
     }
+    @keyframes slideInUnderline {
+      from {
+        transform: scaleX(0);
+        transform-origin: left;
+      }
+      to {
+        transform: scaleX(1);
+        transform-origin: left;
+      }
+    }
+    @keyframes menuHover {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-2px); }
+      100% { transform: translateY(0); }
+    }
+    @keyframes fadeInActive {
+      from {
+        opacity: 0;
+        color: #222;
+      }
+      to {
+        opacity: 1;
+        color: var(--purple-900);
+      }
+    }
     .module-nav a {
       display: inline-flex; align-items: center; gap: 8px; padding: 14px 12px;
       margin-right: 10px; color: #222; text-decoration: none; font-size: 16px;
-      font-weight: 500; border-bottom: 3px solid transparent;
+      font-weight: 500; border-bottom: 3px solid transparent; position: relative;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    .module-nav a:hover { color: var(--purple-900); }
-    .module-nav a.active { color: var(--purple-900); border-bottom-color: var(--purple-700); font-weight: 700; }
+    .module-nav a::before {
+      content: '';
+      position: absolute;
+      bottom: -3px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--purple-700);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .module-nav a:hover {
+      color: var(--purple-900);
+      animation: menuHover 0.4s ease-out;
+    }
+    .module-nav a:hover::before {
+      transform: scaleX(1);
+      animation: slideInUnderline 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    .module-nav a.active {
+      color: var(--purple-900);
+      font-weight: 700;
+      animation: fadeInActive 0.4s ease-out;
+    }
+    .module-nav a.active::before {
+      transform: scaleX(1);
+      animation: slideInUnderline 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
 
     .page { width: min(1840px, calc(100vw - 32px)); margin: 156px auto 24px; }
 
@@ -338,6 +401,39 @@
           input.form.submit();
         }
       });
+
+      // Animação de transição suave entre menus
+      const moduleNav = document.querySelector('.module-nav');
+      if (moduleNav) {
+        const links = moduleNav.querySelectorAll('a');
+        
+        links.forEach(link => {
+          link.addEventListener('mouseenter', function() {
+            // Efeito de hover com animação
+            this.style.transform = 'translateY(-2px)';
+          });
+          
+          link.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+          });
+          
+          link.addEventListener('click', function(e) {
+            // Remove animação de todos os links
+            links.forEach(l => {
+              l.classList.remove('active');
+              l.style.opacity = '0.7';
+            });
+            
+            // Adiciona fade out ao link clicado
+            this.style.opacity = '1';
+            
+            // Simula um pequeno delay antes de navegar para melhor UX
+            setTimeout(() => {
+              this.style.transition = 'all 0.2s ease-out';
+            }, 100);
+          });
+        });
+      }
     })();
   </script>
   {% block scripts %}{% endblock %}

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -11,7 +11,10 @@ import sys
 import tempfile
 from io import BytesIO
 import math
-from urllib.request import urlopen
+import mimetypes
+from urllib.parse import quote
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
 import json
 
 from sqlalchemy import text, func
@@ -87,6 +90,14 @@ app.config['UPLOAD_FOLDER_COMISSAO'] = os.path.join(DATA_DIR, 'uploads', 'comiss
 app.config['UPLOAD_FOLDER_DOCS'] = os.path.join(DATA_DIR, 'uploads', 'documentos')
 app.config['UPLOAD_FOLDER_CLUBE'] = os.path.join(DATA_DIR, 'uploads', 'clube')
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
+app.config['SUPABASE_URL'] = (os.environ.get('SUPABASE_URL') or '').rstrip('/')
+app.config['SUPABASE_KEY'] = (
+    os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
+    or os.environ.get('SUPABASE_KEY')
+    or os.environ.get('SUPABASE_ANON_KEY')
+    or ''
+)
+app.config['SUPABASE_BUCKET'] = os.environ.get('SUPABASE_BUCKET', 'getclub')
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['UPLOAD_FOLDER_COMISSAO'], exist_ok=True)
@@ -95,20 +106,28 @@ os.makedirs(app.config['UPLOAD_FOLDER_CLUBE'], exist_ok=True)
 
 @app.route('/uploads/atletas/<path:filename>')
 def serve_foto_atleta(filename):
-    from flask import send_from_directory
+    if supabase_storage_enabled():
+        return serve_supabase_file('atletas', filename)
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/uploads/comissao/<path:filename>')
 def serve_foto_comissao(filename):
-    from flask import send_from_directory
+    if supabase_storage_enabled():
+        return serve_supabase_file('comissao', filename)
     return send_from_directory(app.config['UPLOAD_FOLDER_COMISSAO'], filename)
 
 @app.route('/uploads/clube/<path:filename>')
 def serve_logo_clube(filename):
-    from flask import send_from_directory
+    if supabase_storage_enabled():
+        return serve_supabase_file('clube', filename)
     return send_from_directory(app.config['UPLOAD_FOLDER_CLUBE'], filename)
 
 def get_logo_clube_filename():
+    logo_salvo = load_app_settings().get("club_logo")
+    if logo_salvo:
+        return logo_salvo
+    if supabase_storage_enabled():
+        return None
     pasta = app.config['UPLOAD_FOLDER_CLUBE']
     try:
         arquivos = []
@@ -166,6 +185,128 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def supabase_storage_enabled():
+    return bool(app.config['SUPABASE_URL'] and app.config['SUPABASE_KEY'] and app.config['SUPABASE_BUCKET'])
+
+def supabase_object_path(folder, filename):
+    safe_name = filename.replace('\\', '/').lstrip('/')
+    return f"{folder.strip('/')}/{safe_name}"
+
+def supabase_object_url(object_path):
+    bucket = quote(app.config['SUPABASE_BUCKET'], safe='')
+    path = quote(object_path, safe='/')
+    return f"{app.config['SUPABASE_URL']}/storage/v1/object/{bucket}/{path}"
+
+def supabase_headers(extra=None):
+    headers = {
+        'apikey': app.config['SUPABASE_KEY'],
+        'Authorization': f"Bearer {app.config['SUPABASE_KEY']}",
+    }
+    if extra:
+        headers.update(extra)
+    return headers
+
+def supabase_raise(prefix, error):
+    if isinstance(error, HTTPError):
+        try:
+            details = error.read().decode('utf-8', errors='replace')
+        except Exception:
+            details = ''
+        raise RuntimeError(f"{prefix} no Supabase falhou ({error.code}): {details or error.reason}")
+    if isinstance(error, URLError):
+        raise RuntimeError(f"{prefix} no Supabase falhou: {error.reason}")
+    raise RuntimeError(f"{prefix} no Supabase falhou: {error}")
+
+def upload_to_supabase(file_storage, folder, filename):
+    object_path = supabase_object_path(folder, filename)
+    content_type = file_storage.mimetype or mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+    try:
+        file_storage.stream.seek(0)
+    except Exception:
+        pass
+    data = file_storage.read()
+    try:
+        req = Request(
+            supabase_object_url(object_path),
+            data=data,
+            method='POST',
+            headers=supabase_headers({
+                'Content-Type': content_type,
+                'Cache-Control': '3600',
+                'x-upsert': 'true',
+            }),
+        )
+        with urlopen(req, timeout=30):
+            pass
+    except Exception as e:
+        supabase_raise('Upload', e)
+
+def delete_from_supabase(folder, filename):
+    if not filename:
+        return
+    object_path = supabase_object_path(folder, filename)
+    try:
+        req = Request(
+            supabase_object_url(object_path),
+            method='DELETE',
+            headers=supabase_headers(),
+        )
+        with urlopen(req, timeout=20):
+            pass
+    except HTTPError as e:
+        if e.code != 404:
+            supabase_raise('Remoção', e)
+    except Exception:
+        pass
+
+def download_from_supabase(folder, filename):
+    object_path = supabase_object_path(folder, filename)
+    try:
+        req = Request(supabase_object_url(object_path), headers=supabase_headers())
+        with urlopen(req, timeout=30) as resp:
+            return resp.read(), resp.headers.get('Content-Type')
+    except Exception as e:
+        supabase_raise('Download', e)
+
+def serve_supabase_file(folder, filename):
+    data, content_type = download_from_supabase(folder, filename)
+    mimetype = content_type or mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+    return send_file(BytesIO(data), mimetype=mimetype, download_name=filename)
+
+def save_uploaded_file(file_storage, folder, local_folder, old_filename=None, image_only=False):
+    if not file_storage or not file_storage.filename:
+        return None
+    if image_only and not allowed_file(file_storage.filename):
+        raise ValueError('Formato de imagem inválido. Use PNG, JPG, JPEG, GIF ou WEBP.')
+
+    original = secure_filename(file_storage.filename)
+    filename = secure_filename(f"{datetime.now().timestamp()}_{original}")
+
+    if supabase_storage_enabled():
+        upload_to_supabase(file_storage, folder, filename)
+        if old_filename and old_filename != filename:
+            delete_from_supabase(folder, old_filename)
+    else:
+        destino = os.path.join(local_folder, filename)
+        file_storage.save(destino)
+        if old_filename and old_filename != filename:
+            try:
+                os.remove(os.path.join(local_folder, old_filename))
+            except OSError:
+                pass
+
+    return filename
+
+def delete_uploaded_file(folder, local_folder, filename):
+    if not filename:
+        return
+    if supabase_storage_enabled():
+        delete_from_supabase(folder, filename)
+    try:
+        os.remove(os.path.join(local_folder, filename))
+    except OSError:
+        pass
+
 def get_foto_file():
     """
     Compatibilidade entre versões de template:
@@ -174,22 +315,13 @@ def get_foto_file():
     return request.files.get('foto') or request.files.get('fotoInput')
 
 def salvar_foto_atleta(foto, foto_antiga=None):
-    if not foto or not foto.filename:
-        return None
-    if not allowed_file(foto.filename):
-        raise ValueError('Formato de imagem inválido. Use PNG, JPG, JPEG, GIF ou WEBP.')
-
-    filename = secure_filename(f"{datetime.now().timestamp()}_{foto.filename}")
-    destino = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    foto.save(destino)
-
-    if foto_antiga and foto_antiga != filename:
-        try:
-            os.remove(os.path.join(app.config['UPLOAD_FOLDER'], foto_antiga))
-        except OSError:
-            pass
-
-    return filename
+    return save_uploaded_file(
+        foto,
+        'atletas',
+        app.config['UPLOAD_FOLDER'],
+        old_filename=foto_antiga,
+        image_only=True
+    )
 
 def garantir_colunas_atleta():
     colunas = [
@@ -412,8 +544,12 @@ def carregar_foto_atleta(atleta):
     if not atleta.foto:
         return None
     try:
-        path = os.path.join(app.config['UPLOAD_FOLDER'], atleta.foto)
-        img = Image.open(path).convert("RGB")
+        if supabase_storage_enabled():
+            data, _ = download_from_supabase('atletas', atleta.foto)
+            img = Image.open(BytesIO(data)).convert("RGB")
+        else:
+            path = os.path.join(app.config['UPLOAD_FOLDER'], atleta.foto)
+            img = Image.open(path).convert("RGB")
         return img
     except Exception:
         return None
@@ -536,21 +672,26 @@ def upload_logo_clube():
             flash('Formato inválido. Use PNG, JPG, JPEG, GIF ou WEBP.', 'error')
             return redirect(url_for('index'))
 
-        nome = secure_filename(logo.filename)
-        ext = nome.rsplit('.', 1)[1].lower()
-        novo_nome = f"club_logo_{int(datetime.now().timestamp())}.{ext}"
-        destino = os.path.join(app.config['UPLOAD_FOLDER_CLUBE'], novo_nome)
-        logo.save(destino)
+        antigo_logo = get_logo_clube_filename()
+        novo_nome = save_uploaded_file(
+            logo,
+            'clube',
+            app.config['UPLOAD_FOLDER_CLUBE'],
+            old_filename=antigo_logo,
+            image_only=True
+        )
+        save_app_settings({"club_logo": novo_nome})
 
         # Limpa logos antigos para manter apenas o atual.
-        for antigo in os.listdir(app.config['UPLOAD_FOLDER_CLUBE']):
-            if antigo != novo_nome:
-                antigo_path = os.path.join(app.config['UPLOAD_FOLDER_CLUBE'], antigo)
-                if os.path.isfile(antigo_path):
-                    try:
-                        os.remove(antigo_path)
-                    except Exception:
-                        pass
+        if not supabase_storage_enabled():
+            for antigo in os.listdir(app.config['UPLOAD_FOLDER_CLUBE']):
+                if antigo != novo_nome:
+                    antigo_path = os.path.join(app.config['UPLOAD_FOLDER_CLUBE'], antigo)
+                    if os.path.isfile(antigo_path):
+                        try:
+                            os.remove(antigo_path)
+                        except Exception:
+                            pass
 
         flash('Logo do clube atualizada com sucesso.', 'success')
     except Exception as e:
@@ -1259,10 +1400,7 @@ def deletar_atleta(id):
     Convocada.query.filter_by(atleta_id=id).delete()
     
     if atleta.foto:
-        try:
-            os.remove(os.path.join(app.config['UPLOAD_FOLDER'], atleta.foto))
-        except:
-            pass
+        delete_uploaded_file('atletas', app.config['UPLOAD_FOLDER'], atleta.foto)
     
     db.session.delete(atleta)
     db.session.commit()
@@ -1482,9 +1620,12 @@ def comissao():
             if 'foto' in request.files:
                 foto = request.files['foto']
                 if foto and foto.filename and allowed_file(foto.filename):
-                    filename = secure_filename(f"{datetime.now().timestamp()}_{foto.filename}")
-                    foto.save(os.path.join(app.config['UPLOAD_FOLDER_COMISSAO'], filename))
-                    foto_path = filename
+                    foto_path = save_uploaded_file(
+                        foto,
+                        'comissao',
+                        app.config['UPLOAD_FOLDER_COMISSAO'],
+                        image_only=True
+                    )
             
             membro = ComissaoTecnica(
                 nome=request.form['nome'],
@@ -1523,14 +1664,13 @@ def editar_comissao(id):
             if 'foto' in request.files:
                 foto = request.files['foto']
                 if foto and foto.filename and allowed_file(foto.filename):
-                    if membro.foto:
-                        try:
-                            os.remove(os.path.join(app.config['UPLOAD_FOLDER_COMISSAO'], membro.foto))
-                        except:
-                            pass
-                    filename = secure_filename(f"{datetime.now().timestamp()}_{foto.filename}")
-                    foto.save(os.path.join(app.config['UPLOAD_FOLDER_COMISSAO'], filename))
-                    membro.foto = filename
+                    membro.foto = save_uploaded_file(
+                        foto,
+                        'comissao',
+                        app.config['UPLOAD_FOLDER_COMISSAO'],
+                        old_filename=membro.foto,
+                        image_only=True
+                    )
             
             db.session.commit()
             flash(f'{membro.nome} atualizado!', 'success')
@@ -1546,6 +1686,8 @@ def editar_comissao(id):
 def deletar_comissao(id):
     membro = ComissaoTecnica.query.get_or_404(id)
     nome = membro.nome
+    if membro.foto:
+        delete_uploaded_file('comissao', app.config['UPLOAD_FOLDER_COMISSAO'], membro.foto)
     db.session.delete(membro)
     db.session.commit()
     flash(f'Membro {nome} removido!', 'success')
@@ -2059,12 +2201,39 @@ def adicionar_ficha_medica():
 def atualizar_ficha_medica(id):
     ficha = FichaMedica.query.get_or_404(id)
     try:
-        ficha.status = request.form['status']
-        if request.form['status'] == 'recuperado':
-            ficha.data_retorno_efetivo = datetime.now().date()
-        ficha.observacoes = request.form.get('observacoes', ficha.observacoes)
+        ficha.atleta_id = int(request.form.get('atleta_id', ficha.atleta_id))
+        ficha.tipo_lesao = request.form.get('tipo_lesao')
+        ficha.data_lesao = datetime.strptime(request.form['data_lesao'], '%Y-%m-%d').date() if request.form.get('data_lesao') else None
+        ficha.data_retorno_previsto = datetime.strptime(request.form['data_retorno_previsto'], '%Y-%m-%d').date() if request.form.get('data_retorno_previsto') else None
+        ficha.gravidade = request.form.get('gravidade')
+        ficha.medico_responsavel = request.form.get('medico_responsavel')
+        ficha.diagnostico = request.form.get('diagnostico')
+        ficha.tratamento = request.form.get('tratamento')
+        ficha.observacoes = request.form.get('observacoes')
+        status = request.form.get('status', ficha.status)
+        ficha.status = status
+        if status == 'recuperado':
+            if request.form.get('data_retorno_efetivo'):
+                ficha.data_retorno_efetivo = datetime.strptime(request.form['data_retorno_efetivo'], '%Y-%m-%d').date()
+            elif not ficha.data_retorno_efetivo:
+                ficha.data_retorno_efetivo = datetime.now().date()
+        else:
+            ficha.data_retorno_efetivo = None
         db.session.commit()
         flash('Ficha médica atualizada!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro: {str(e)}', 'error')
+    return redirect(url_for('departamento_medico'))
+
+@app.route('/departamento_medico/remover/<int:id>', methods=['POST'])
+@login_required
+def remover_ficha_medica(id):
+    ficha = FichaMedica.query.get_or_404(id)
+    try:
+        db.session.delete(ficha)
+        db.session.commit()
+        flash('Ficha médica removida com sucesso!', 'success')
     except Exception as e:
         db.session.rollback()
         flash(f'Erro: {str(e)}', 'error')
