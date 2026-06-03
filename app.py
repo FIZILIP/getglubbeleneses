@@ -108,19 +108,19 @@ os.makedirs(app.config['UPLOAD_FOLDER_CLUBE'], exist_ok=True)
 def serve_foto_atleta(filename):
     if supabase_storage_enabled():
         return serve_supabase_file('atletas', filename)
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    return serve_db_file('atletas', filename)
 
 @app.route('/uploads/comissao/<path:filename>')
 def serve_foto_comissao(filename):
     if supabase_storage_enabled():
         return serve_supabase_file('comissao', filename)
-    return send_from_directory(app.config['UPLOAD_FOLDER_COMISSAO'], filename)
+    return serve_db_file('comissao', filename)
 
 @app.route('/uploads/clube/<path:filename>')
 def serve_logo_clube(filename):
     if supabase_storage_enabled():
         return serve_supabase_file('clube', filename)
-    return send_from_directory(app.config['UPLOAD_FOLDER_CLUBE'], filename)
+    return serve_db_file('clube', filename)
 
 def get_logo_clube_filename():
     logo_salvo = load_app_settings().get("club_logo")
@@ -144,6 +144,13 @@ def get_logo_clube_filename():
 
 def load_app_settings():
     padrao = {"club_name": "GETCLUB"}
+    try:
+        settings = AppSetting.query.all()
+        if settings:
+            padrao.update({item.key: item.value for item in settings})
+            return padrao
+    except Exception:
+        pass
     for caminho in [APP_SETTINGS_PATH, APP_SETTINGS_FALLBACK_PATH]:
         try:
             if os.path.exists(caminho):
@@ -159,6 +166,18 @@ def load_app_settings():
 def save_app_settings(data):
     atual = load_app_settings()
     atual.update(data or {})
+    try:
+        for chave, valor in (data or {}).items():
+            setting = AppSetting.query.get(chave)
+            if setting is None:
+                setting = AppSetting(key=chave)
+                db.session.add(setting)
+            setting.value = '' if valor is None else str(valor)
+        db.session.commit()
+        return True
+    except Exception:
+        db.session.rollback()
+
     ok = False
     for caminho in [APP_SETTINGS_PATH, APP_SETTINGS_FALLBACK_PATH]:
         try:
@@ -172,7 +191,7 @@ def save_app_settings(data):
             continue
     return ok
 
-from models import AvaliacaoFisica, AvaliacaoMental, AvaliacaoTatica, AvaliacaoTecnica, db, User, Atleta, ComissaoTecnica, Compra, GastoMensal, ContaFixa, Inventario, Reuniao, Evento, FichaMedica, Scouting, Patrocinio, Documento, EventoAtleta, Convocatoria, Convocada, EstatisticaJogo
+from models import AvaliacaoFisica, AvaliacaoMental, AvaliacaoTatica, AvaliacaoTecnica, db, User, AppSetting, UploadedFile, Atleta, ComissaoTecnica, Compra, GastoMensal, ContaFixa, Inventario, Reuniao, Evento, FichaMedica, Scouting, Patrocinio, Documento, EventoAtleta, Convocatoria, Convocada, EstatisticaJogo
 
 db.init_app(app)
 
@@ -217,14 +236,8 @@ def supabase_raise(prefix, error):
         raise RuntimeError(f"{prefix} no Supabase falhou: {error.reason}")
     raise RuntimeError(f"{prefix} no Supabase falhou: {error}")
 
-def upload_to_supabase(file_storage, folder, filename):
+def upload_to_supabase(data, folder, filename, content_type):
     object_path = supabase_object_path(folder, filename)
-    content_type = file_storage.mimetype or mimetypes.guess_type(filename)[0] or 'application/octet-stream'
-    try:
-        file_storage.stream.seek(0)
-    except Exception:
-        pass
-    data = file_storage.read()
     try:
         req = Request(
             supabase_object_url(object_path),
@@ -240,6 +253,30 @@ def upload_to_supabase(file_storage, folder, filename):
             pass
     except Exception as e:
         supabase_raise('Upload', e)
+
+def save_file_to_db(folder, filename, data, content_type):
+    stored = UploadedFile.query.filter_by(filename=filename).first()
+    if stored is None:
+        stored = UploadedFile(filename=filename)
+        db.session.add(stored)
+    stored.folder = folder
+    stored.content_type = content_type
+    stored.data = data
+    db.session.commit()
+
+def delete_file_from_db(filename):
+    if not filename:
+        return
+    stored = UploadedFile.query.filter_by(filename=filename).first()
+    if stored:
+        db.session.delete(stored)
+        db.session.commit()
+
+def download_file_from_db(folder, filename):
+    stored = UploadedFile.query.filter_by(filename=filename).first()
+    if stored and stored.folder == folder:
+        return stored.data, stored.content_type
+    return None, None
 
 def delete_from_supabase(folder, filename):
     if not filename:
@@ -269,7 +306,25 @@ def download_from_supabase(folder, filename):
         supabase_raise('Download', e)
 
 def serve_supabase_file(folder, filename):
-    data, content_type = download_from_supabase(folder, filename)
+    try:
+        data, content_type = download_from_supabase(folder, filename)
+    except Exception:
+        data, content_type = download_file_from_db(folder, filename)
+        if data is None:
+            raise
+    mimetype = content_type or mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+    return send_file(BytesIO(data), mimetype=mimetype, download_name=filename)
+
+def serve_db_file(folder, filename):
+    data, content_type = download_file_from_db(folder, filename)
+    if data is None:
+        local_folders = {
+            'atletas': app.config['UPLOAD_FOLDER'],
+            'comissao': app.config['UPLOAD_FOLDER_COMISSAO'],
+            'clube': app.config['UPLOAD_FOLDER_CLUBE'],
+            'documentos': app.config['UPLOAD_FOLDER_DOCS'],
+        }
+        return send_from_directory(local_folders[folder], filename)
     mimetype = content_type or mimetypes.guess_type(filename)[0] or 'application/octet-stream'
     return send_file(BytesIO(data), mimetype=mimetype, download_name=filename)
 
@@ -282,18 +337,38 @@ def save_uploaded_file(file_storage, folder, local_folder, old_filename=None, im
     original = secure_filename(file_storage.filename)
     filename = secure_filename(f"{datetime.now().timestamp()}_{original}")
 
-    if supabase_storage_enabled():
-        upload_to_supabase(file_storage, folder, filename)
-        if old_filename and old_filename != filename:
-            delete_from_supabase(folder, old_filename)
-    else:
+    content_type = file_storage.mimetype or mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+    try:
+        file_storage.stream.seek(0)
+    except Exception:
+        pass
+    data = file_storage.read()
+
+    try:
+        save_file_to_db(folder, filename, data, content_type)
+    except Exception:
+        db.session.rollback()
         destino = os.path.join(local_folder, filename)
-        file_storage.save(destino)
-        if old_filename and old_filename != filename:
-            try:
-                os.remove(os.path.join(local_folder, old_filename))
-            except OSError:
-                pass
+        with open(destino, 'wb') as f:
+            f.write(data)
+
+    if supabase_storage_enabled():
+        try:
+            upload_to_supabase(data, folder, filename, content_type)
+        except Exception:
+            pass
+
+    if old_filename and old_filename != filename:
+        if supabase_storage_enabled():
+            delete_from_supabase(folder, old_filename)
+        try:
+            delete_file_from_db(old_filename)
+        except Exception:
+            db.session.rollback()
+        try:
+            os.remove(os.path.join(local_folder, old_filename))
+        except OSError:
+            pass
 
     return filename
 
@@ -302,6 +377,10 @@ def delete_uploaded_file(folder, local_folder, filename):
         return
     if supabase_storage_enabled():
         delete_from_supabase(folder, filename)
+    try:
+        delete_file_from_db(filename)
+    except Exception:
+        db.session.rollback()
     try:
         os.remove(os.path.join(local_folder, filename))
     except OSError:
@@ -377,6 +456,49 @@ def garantir_colunas_convocatoria():
         try:
             db.session.execute(text("ALTER TABLE convocatoria ADD COLUMN treinador VARCHAR(100)"))
             db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+def migrar_arquivos_locais_para_banco():
+    pastas = {
+        'atletas': app.config['UPLOAD_FOLDER'],
+        'comissao': app.config['UPLOAD_FOLDER_COMISSAO'],
+        'clube': app.config['UPLOAD_FOLDER_CLUBE'],
+        'documentos': app.config['UPLOAD_FOLDER_DOCS'],
+    }
+    for folder, local_folder in pastas.items():
+        try:
+            for filename in os.listdir(local_folder):
+                caminho = os.path.join(local_folder, filename)
+                if not os.path.isfile(caminho):
+                    continue
+                if UploadedFile.query.filter_by(filename=filename).first():
+                    continue
+                with open(caminho, 'rb') as f:
+                    data = f.read()
+                content_type = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+                db.session.add(UploadedFile(
+                    folder=folder,
+                    filename=filename,
+                    content_type=content_type,
+                    data=data
+                ))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+def migrar_settings_json_para_banco():
+    for caminho in [APP_SETTINGS_PATH, APP_SETTINGS_FALLBACK_PATH]:
+        try:
+            if not os.path.exists(caminho):
+                continue
+            with open(caminho, "r", encoding="utf-8") as f:
+                dados = json.load(f)
+            if isinstance(dados, dict):
+                for chave, valor in dados.items():
+                    if AppSetting.query.get(chave) is None:
+                        db.session.add(AppSetting(key=chave, value='' if valor is None else str(valor)))
+                db.session.commit()
         except Exception:
             db.session.rollback()
 
@@ -545,11 +667,20 @@ def carregar_foto_atleta(atleta):
         return None
     try:
         if supabase_storage_enabled():
-            data, _ = download_from_supabase('atletas', atleta.foto)
+            try:
+                data, _ = download_from_supabase('atletas', atleta.foto)
+            except Exception:
+                data, _ = download_file_from_db('atletas', atleta.foto)
+                if data is None:
+                    return None
             img = Image.open(BytesIO(data)).convert("RGB")
         else:
-            path = os.path.join(app.config['UPLOAD_FOLDER'], atleta.foto)
-            img = Image.open(path).convert("RGB")
+            data, _ = download_file_from_db('atletas', atleta.foto)
+            if data is not None:
+                img = Image.open(BytesIO(data)).convert("RGB")
+            else:
+                path = os.path.join(app.config['UPLOAD_FOLDER'], atleta.foto)
+                img = Image.open(path).convert("RGB")
         return img
     except Exception:
         return None
@@ -2443,8 +2574,12 @@ def upload_documento():
             return redirect(url_for('documentos'))
         
         if arquivo:
-            filename = secure_filename(f"{datetime.now().timestamp()}_{arquivo.filename}")
-            arquivo.save(os.path.join(app.config['UPLOAD_FOLDER_DOCS'], filename))
+            filename = save_uploaded_file(
+                arquivo,
+                'documentos',
+                app.config['UPLOAD_FOLDER_DOCS'],
+                image_only=False
+            )
             
             doc = Documento(
                 nome=request.form['nome'],
@@ -2465,6 +2600,15 @@ def upload_documento():
 @login_required
 def download_documento(id):
     doc = Documento.query.get_or_404(id)
+    if supabase_storage_enabled():
+        try:
+            data, content_type = download_from_supabase('documentos', doc.arquivo)
+            return send_file(BytesIO(data), mimetype=content_type or 'application/octet-stream', as_attachment=True, download_name=doc.arquivo)
+        except Exception:
+            pass
+    data, content_type = download_file_from_db('documentos', doc.arquivo)
+    if data is not None:
+        return send_file(BytesIO(data), mimetype=content_type or 'application/octet-stream', as_attachment=True, download_name=doc.arquivo)
     caminho = os.path.join(app.config['UPLOAD_FOLDER_DOCS'], doc.arquivo)
     return send_file(caminho, as_attachment=True, download_name=doc.arquivo)
 
@@ -2472,10 +2616,7 @@ def download_documento(id):
 @login_required
 def deletar_documento(id):
     doc = Documento.query.get_or_404(id)
-    try:
-        os.remove(os.path.join(app.config['UPLOAD_FOLDER_DOCS'], doc.arquivo))
-    except:
-        pass
+    delete_uploaded_file('documentos', app.config['UPLOAD_FOLDER_DOCS'], doc.arquivo)
     db.session.delete(doc)
     db.session.commit()
     flash('Documento removido!', 'success')
@@ -2484,6 +2625,8 @@ def deletar_documento(id):
 # Criar tabelas ao iniciar
 with app.app_context():
     db.create_all()
+    migrar_settings_json_para_banco()
+    migrar_arquivos_locais_para_banco()
     garantir_colunas_atleta()
     garantir_colunas_permissoes_usuario()
     garantir_colunas_convocatoria()

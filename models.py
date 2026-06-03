@@ -94,6 +94,21 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime)
 
+class AppSetting(db.Model):
+    __tablename__ = 'app_setting'
+    key = db.Column(db.String(80), primary_key=True)
+    value = db.Column(db.Text)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class UploadedFile(db.Model):
+    __tablename__ = 'uploaded_file'
+    id = db.Column(db.Integer, primary_key=True)
+    folder = db.Column(db.String(80), nullable=False, index=True)
+    filename = db.Column(db.String(255), nullable=False, unique=True)
+    content_type = db.Column(db.String(120))
+    data = db.Column(db.LargeBinary, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 class Atleta(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
