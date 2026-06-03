@@ -333,6 +333,11 @@
 </head>
 <body>
 {% if current_user.is_authenticated %}
+  {% if current_user.is_admin and persistence_warning %}
+  <div style="position:fixed;left:0;right:0;bottom:0;z-index:10000;background:#b91c1c;color:white;padding:10px 16px;text-align:center;font-weight:800;font-size:13px;">
+    Persistência não configurada no Render: defina DATABASE_URL ou SUPABASE_DB_URL para não perder alterações. Diagnóstico: /admin/persistencia
+  </div>
+  {% endif %}
   <header class="topbar">
     <button class="menu-btn" type="button"><i class="fas fa-bars"></i></button>
     <form method="POST" action="{{ url_for('upload_logo_clube') }}" enctype="multipart/form-data" style="margin:0;">

@@ -77,13 +77,21 @@ LOCAL_DB_PATH = ensure_local_db(DATA_DIR)
 APP_SETTINGS_PATH = os.path.join(DATA_DIR, "app_settings.json")
 APP_SETTINGS_FALLBACK_PATH = os.path.join(BASE_DIR, "app_settings.json")
 
-database_url = os.environ.get('DATABASE_URL')
+database_url = (
+    os.environ.get('DATABASE_URL')
+    or os.environ.get('POSTGRES_URL')
+    or os.environ.get('POSTGRESQL_URL')
+    or os.environ.get('SUPABASE_DB_URL')
+    or os.environ.get('SUPABASE_DATABASE_URL')
+)
 if database_url:
     if database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    app.config['PERSISTENCE_BACKEND'] = 'postgres'
 else:
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + LOCAL_DB_PATH
+    app.config['PERSISTENCE_BACKEND'] = 'sqlite'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(DATA_DIR, 'uploads', 'atletas')
 app.config['UPLOAD_FOLDER_COMISSAO'] = os.path.join(DATA_DIR, 'uploads', 'comissao')
@@ -177,6 +185,9 @@ def save_app_settings(data):
         return True
     except Exception:
         db.session.rollback()
+
+    if os.environ.get('RENDER') and app.config.get('PERSISTENCE_BACKEND') == 'sqlite':
+        return False
 
     ok = False
     for caminho in [APP_SETTINGS_PATH, APP_SETTINGS_FALLBACK_PATH]:
@@ -706,7 +717,8 @@ def utility_processor():
         'club_display_name': club_name,
         'club_subtitulo': club_subtitulo,
         'club_meta': club_meta,
-        'club_logo_url': club_logo_url
+        'club_logo_url': club_logo_url,
+        'persistence_warning': bool(os.environ.get('RENDER') and app.config.get('PERSISTENCE_BACKEND') == 'sqlite')
     }
 
 @app.before_request
@@ -848,6 +860,43 @@ def update_nome_clube():
     else:
         flash('Não foi possível salvar. Verifique permissões de escrita.', 'error')
     return redirect(request.referrer or url_for('index'))
+
+@app.route('/admin/persistencia')
+@login_required
+def diagnostico_persistencia():
+    if not current_user.is_admin:
+        return jsonify({'ok': False, 'error': 'Acesso negado'}), 403
+
+    uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+    safe_uri = uri
+    if '://' in safe_uri and '@' in safe_uri:
+        scheme, rest = safe_uri.split('://', 1)
+        host_part = rest.split('@', 1)[1]
+        safe_uri = f"{scheme}://***:***@{host_part}"
+
+    try:
+        db.session.execute(text('SELECT 1'))
+        database_ok = True
+    except Exception:
+        db.session.rollback()
+        database_ok = False
+
+    return jsonify({
+        'ok': True,
+        'database_ok': database_ok,
+        'persistence_backend': app.config.get('PERSISTENCE_BACKEND'),
+        'database_url_configured': bool(database_url),
+        'database_uri': safe_uri,
+        'local_db_path': LOCAL_DB_PATH,
+        'getclub_data_dir': DATA_DIR,
+        'running_on_render': bool(os.environ.get('RENDER')),
+        'render_service_id_present': bool(os.environ.get('RENDER_SERVICE_ID')),
+        'supabase_storage_enabled': supabase_storage_enabled(),
+        'settings_count': AppSetting.query.count(),
+        'uploaded_files_count': UploadedFile.query.count(),
+        'athletes_count': Atleta.query.count(),
+        'club_settings': load_app_settings(),
+    })
 
 @app.before_request
 def verificar_licenca():
